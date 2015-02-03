@@ -1,0 +1,12 @@
+
+
+Release procedure
+- increment release number 
+- zip and rename accordingly 
+
+TODO
+- add an option to export true peak values 
+- channel assignation (today the 6 channels are used in the L R C Lfe Ls Rs order and not explicitly indicated);
+- mac plug 
+- True Peak color change when exceed value 
+
