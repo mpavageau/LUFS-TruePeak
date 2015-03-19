@@ -311,7 +311,8 @@ void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation )
 
         juce::String text = "Time\tMomentary\tShort Term\tIntegrated\n";
 
-        for ( int tens = 0; tens < updateSize ; tens += 10 )
+        int ten = 10;
+        for ( int tens = 0; tens < updateSize - ten ; tens += ten )
         {
             // add time 
             const int seconds = tens / 10;
@@ -330,15 +331,36 @@ void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation )
             line << "\t";
 
             // add momentary
-            line << juce::String( processor->m_lufsProcessor.getMomentaryVolumeArray()[ tens ], 1 );
+            float momentary = DEFAULT_MIN_VOLUME;
+            for ( int i = 0 ; i < ten ; ++i )
+            {
+                float val = processor->m_lufsProcessor.getMomentaryVolumeArray()[ tens + i ];
+                if ( momentary < val  )
+                    momentary = val;
+            }
+            line << juce::String( momentary, 1 );
             line << "\t";
 
             // add short term
-            line << juce::String( processor->m_lufsProcessor.getShortTermVolumeArray()[ tens ], 1 );
+            float shortTerm = DEFAULT_MIN_VOLUME;
+            for ( int i = 0 ; i < ten ; ++i )
+            {
+                float val = processor->m_lufsProcessor.getShortTermVolumeArray()[ tens + i ];
+                if ( shortTerm < val  )
+                    shortTerm = val;
+            }
+            line << juce::String( shortTerm, 1 );
             line << "\t";
 
             // add integrated
-            line << juce::String( processor->m_lufsProcessor.getIntegratedVolumeArray()[ tens ], 1 );
+            float integrated = DEFAULT_MIN_VOLUME;
+            for ( int i = 0 ; i < ten ; ++i )
+            {
+                float val = processor->m_lufsProcessor.getIntegratedVolumeArray()[ tens + i ];
+                if ( integrated < val  )
+                    integrated = val;
+            }
+            line << juce::String( integrated, 1 );
             line << "\n";
 
             if ( useCommasForDigitSeparation )

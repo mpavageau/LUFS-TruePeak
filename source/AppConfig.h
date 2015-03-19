@@ -53,9 +53,9 @@
 //#define JUCE_PLUGINHOST_VST3 1
 
 #define JucePlugin_Name "LUFS-TruePeak"
-#define JucePlugin_Version                1.0.2
-#define JucePlugin_VersionCode            0x10002
-#define JucePlugin_VersionString          "1.0.2"
+#define JucePlugin_Version                1.0.3
+#define JucePlugin_VersionCode            0x10003
+#define JucePlugin_VersionString          "1.0.3"
 
 #define LUFS_TP_MAX_NB_CHANNELS 6
 
