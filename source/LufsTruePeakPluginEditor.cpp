@@ -31,6 +31,10 @@ void DEBUGPLUGIN_output( const char * _text, ...);
 //==============================================================================
 LufsTruePeakPluginEditor::LufsTruePeakPluginEditor (LufsAudioProcessor* ownerFilter)
     : AudioProcessorEditor (ownerFilter)
+    , m_momentaryComponent( "Momentary", COLOR_MOMENTARY )
+    , m_shortTermComponent( "Short Term", COLOR_SHORTTERM)
+    , m_integratedComponent( "Integrated", COLOR_INTEGRATED )
+    , m_rangeComponent( "Range", COLOR_RANGE )
     , m_truePeakComponent( -42.f, 6.f ) // -18.f 6.f
     , m_chart( -42.f, 0.f )//-8.f )
     , m_internallyPaused( false )
@@ -40,16 +44,9 @@ LufsTruePeakPluginEditor::LufsTruePeakPluginEditor (LufsAudioProcessor* ownerFil
     m_timeComponent.setTextColor( COLOR_LUFSTIME );
     addAndMakeVisible( &m_timeComponent );
 
-    m_momentaryComponent.setTextColor( COLOR_MOMENTARY );
     addAndMakeVisible( &m_momentaryComponent );
-
-    m_shortTermComponent.setTextColor( COLOR_SHORTTERM );
     addAndMakeVisible( &m_shortTermComponent );
-
-    m_integratedComponent.setTextColor( COLOR_INTEGRATED );
     addAndMakeVisible( &m_integratedComponent );
-
-    m_rangeComponent.setTextColor( COLOR_RANGE );
     addAndMakeVisible( &m_rangeComponent );
 
     m_resetButton.setButtonText( juce::String( "Reset" ) );
@@ -114,53 +111,27 @@ void LufsTruePeakPluginEditor::paint (juce::Graphics& g)
 
     int x = 10;
     const int width = 120;
-    const int height = 60;
-    const int imageY = 100;
     g.setColour( COLOR_LUFSTIME );
     g.drawFittedText( juce::String( "LUFS" ), x, 10, width, 40, juce::Justification::centred, 1, 0.01f );
     x += width;
-
-    juce::Font font( 18.f );
-    font.setBold(true);
-    g.setFont( font );
-
-    g.setColour( COLOR_MOMENTARY );
-    g.drawFittedText( juce::String( "Momentary" ), x, height, width, 20, juce::Justification::centred, 1, 0.01f );
-    paintFrame(g, x, 0, width, imageY);
-    
-    x += width;
-    g.setColour( COLOR_SHORTTERM );
-    g.drawFittedText( juce::String( "Short term" ), x, height, width, 20, juce::Justification::centred, 1, 0.01f );
-    paintFrame(g, x, 0, width, imageY);
-
-    x += width;
-    g.setColour( COLOR_INTEGRATED );
-    g.drawFittedText( juce::String( "Integrated" ), x, height, width, 20, juce::Justification::centred, 1, 0.01f );
-    paintFrame(g, x, 0, width, imageY);
-
-    x += width;
-    g.setColour( COLOR_RANGE );
-    g.drawFittedText( juce::String( "Range" ), x, height, width, 20, juce::Justification::centred, 1, 0.01f );
-    
 }
 
 void LufsTruePeakPluginEditor::resized()
 {
     DEBUGPLUGIN_output("LufsTruePeakPluginEditor::resized width %d height %d", getWidth(), getHeight());
 
-    const int height = 10;
     int x = 10;
     const int width = 120;
     const int truePeakWidth = 120;
     m_timeComponent.setBounds( x, 48, width, 40 );
     x += width;
-    m_momentaryComponent.setBounds( x, height, width, 40 );
+    m_momentaryComponent.setBounds( x, 0, width, 100 );
     x += width;
-    m_shortTermComponent.setBounds( x, height, width, 40 );
+    m_shortTermComponent.setBounds( x, 0, width, 100 );
     x += width;
-    m_integratedComponent.setBounds( x, height, width, 40 );
+    m_integratedComponent.setBounds( x, 0, width, 100 );
     x += width;
-    m_rangeComponent.setBounds( x, height, width, 40 );
+    m_rangeComponent.setBounds( x, 0, width, 100 );
     x += width;
 
     const int imageX = 10;
@@ -407,15 +378,4 @@ void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation, b
 
         outputStream.writeText( text, false, false );
     }
-}
-
-void LufsTruePeakPluginEditor::paintFrame(juce::Graphics& g, int x, int y, int w, int h)
-{
-    const int frameOffset = 3;
-    const int frameWidth = 5;
-    g.setColour( juce::Colours::red );
-    g.fillRect( x + frameOffset, y + frameOffset, w - 2 * frameOffset, frameWidth );
-    g.fillRect( x + frameOffset, y + h - frameOffset - frameWidth, w - 2 * frameOffset, frameWidth );
-    g.fillRect( x + frameOffset, y + frameOffset, frameWidth, h - 2 * frameOffset );
-    g.fillRect( x + w - frameOffset - frameWidth, y + frameOffset, frameWidth, h - 2 * frameOffset );
 }

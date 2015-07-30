@@ -21,7 +21,8 @@
 
 #pragma once 
 
-#include "FloatComponent.h"
+#include "TextAndFloatComponent.h"
+
 class LufsAudioProcessor;
 
 class TruePeakComponent : public juce::Component
@@ -48,7 +49,7 @@ private:
     
     int getVolumeY( const int offsetText, const int height, const float decibels );
 
-    FloatComponent m_valueComponent;
+    TextAndFloatComponent m_valueComponent;
     LufsAudioProcessor * m_processor;
     struct InertiaStruct
     {
@@ -61,6 +62,5 @@ private:
     int m_validSize;
     float m_minChartVolume;
     float m_maxChartVolume;
-    bool m_truePeakPassedLimit;
 };
 

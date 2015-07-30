@@ -131,13 +131,13 @@ void OptionsComponent::buttonClicked( juce::Button * _button )
 
 
 
-
+/*
 Warning colored frame for Momentary value: -8
 Warning colored frame for Short term value: -12
 Warning colored frame for Integrated value: -23
 Warning colored frame and vertical line for True Peak values: -1
-
-
+*/
+/*
 //==============================================================================
 class DemoSliderPropertyComponent : public SliderPropertyComponent
 {
@@ -155,4 +155,4 @@ public:
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DemoSliderPropertyComponent)
-};
+};*/

@@ -23,7 +23,7 @@
 
 #include "LufsAudioProcessor.h"
 
-#include "FloatComponent.h"
+#include "TextAndFloatComponent.h"
 #include "TimeComponent.h"
 #include "TruePeakComponent.h"
 #include "Chart.h"
@@ -60,13 +60,12 @@ private:
 
     void exportToText( bool useCommasForDigitSeparation, bool exportTruePeak );
     
-    void paintFrame(juce::Graphics& g, int x, int y, int w, int h);
-    
     TimeComponent m_timeComponent;
-    FloatComponent m_momentaryComponent;
-    FloatComponent m_shortTermComponent;
-    FloatComponent m_integratedComponent;
-    FloatComponent m_rangeComponent;
+
+    TextAndFloatComponent m_momentaryComponent;
+    TextAndFloatComponent m_shortTermComponent;
+    TextAndFloatComponent m_integratedComponent;
+    TextAndFloatComponent m_rangeComponent;
 
     TruePeakComponent m_truePeakComponent;
 

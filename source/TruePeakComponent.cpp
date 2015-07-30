@@ -25,16 +25,15 @@
 #include "LufsAudioProcessor.h"
 
 TruePeakComponent::TruePeakComponent( float minChartVolume, float maxChartVolume )
-    : m_processor( nullptr )
+    : m_valueComponent( "True Peak", COLOR_LUFSTIME )
+    , m_processor( nullptr )
     , m_validSize( 0 )
     , m_minChartVolume( minChartVolume )
     , m_maxChartVolume( maxChartVolume )
-    , m_truePeakPassedLimit( false )
 {
-    m_valueComponent.setTextColor( COLOR_LUFSTIME );
     addAndMakeVisible( &m_valueComponent );
 
-    m_valueComponent.setBounds( 10, 10, 100, 40 );
+    m_valueComponent.setBounds( 0, 0, 120, 100 );
     
     resetVolumeInertia();
     
@@ -85,21 +84,6 @@ void TruePeakComponent::paint( juce::Graphics & g )
     const int height = getHeight() - offsetY - 35;
     const int offsetText = 21;
     
-    if ( m_truePeakPassedLimit )
-    {
-        const int frameOffset = 3;
-        const int frameWidth = 5;
-        g.setColour( juce::Colours::red );
-        g.fillRect( frameOffset, frameOffset, getWidth() - 2 * frameOffset, frameWidth );
-        g.fillRect( frameOffset, offsetY - frameOffset - frameWidth, getWidth() - 2 * frameOffset, frameWidth );
-        g.fillRect( frameOffset, frameOffset, frameWidth, offsetY - 2 * frameOffset );
-        g.fillRect( getWidth() - frameOffset - frameWidth, frameOffset, frameWidth, offsetY - 2 * frameOffset );
-    }
-    
-    g.setColour( COLOR_LUFSTIME );
-    g.drawFittedText( juce::String( "True Peak" ), 0, 60, getWidth(), 20, juce::Justification::centred, 1, 0.01f );
-
-    g.setColour( COLOR_LUFSTIME );
     if ( !m_validSize )
         return;
 
@@ -187,8 +171,6 @@ void TruePeakComponent::update()
         float truePeak = m_processor->m_lufsProcessor.getTruePeak();
         
         m_valueComponent.setVolume( truePeak );
-        
-        m_truePeakPassedLimit = truePeak >= -1.f;
     }
 
     repaint();

@@ -21,22 +21,32 @@
 
 #pragma once 
 
-class FloatComponent : public juce::Component
+#include "FloatComponent.h"
+
+class TextAndFloatComponent : public juce::Component
 {
 public:
 
-    FloatComponent( juce::Colour color );
+    TextAndFloatComponent(const char * name, juce::Colour color);
 
     // juce::Component
-    virtual void paint( juce::Graphics & g );
+    virtual void paint( juce::Graphics & g ) override;
+    virtual void resized() override;
 
     void setVolume( const float volume );
 
+    void setThresholdVolume(float thresholdVolume);
+
 private:
 
-    juce::String m_volumeText;
+    FloatComponent m_floatComponent;
+
+    void paintFrame( juce::Graphics& g );
 
     juce::Colour m_color;
+
+    float m_thresholdVolume;
+    bool m_showWarningFrame;
 };
 
 
