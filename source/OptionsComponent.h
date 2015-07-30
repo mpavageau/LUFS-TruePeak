@@ -19,39 +19,35 @@
   =================================================================
 */
 
-#include "AppIncsAndDefs.h"
+#pragma once 
 
-#include "FloatComponent.h"
-
-FloatComponent::FloatComponent()
-    : m_volumeText( juce::String( DEFAULT_MIN_VOLUME, 1 ) )
+class OptionsComponent
+    : public juce::Component
+    , public juce::Button::Listener
 {
-}
+public:
 
-void FloatComponent::paint( juce::Graphics & g )
-{
-#ifdef TESTCOLORS
-    g.fillAll( juce::Colours::red );
-#endif
+    OptionsComponent( juce::ApplicationProperties & _settings );
+    virtual ~OptionsComponent();
 
-    juce::Font font( 36.f );
-    font.setBold(true);
-    g.setFont (font);
-    g.setColour( m_color );
+    // juce::Component
+    virtual void paint( juce::Graphics & g ) override;
 
-    const int xIndent = 2;
-    const int yIndent = 2;
+    // juce::Button::Listener
+    virtual void buttonClicked( juce::Button* ) override;
 
-    g.drawFittedText( m_volumeText, xIndent, yIndent, getWidth() - xIndent, getHeight() - yIndent, juce::Justification::centred, 1, 0.01f );
-}
+private:
 
-void FloatComponent::setVolume( const float volume )
-{
-    juce::String volumeText( volume, 1 );
+    juce::ApplicationProperties & m_settings;
+    juce::String m_useCommasString;
+    juce::String m_exportTruePeakString;
+    juce::ToggleButton m_commaButton;
+    juce::ToggleButton m_pointButton;
+    juce::ToggleButton m_exportTruePeakButton;
+    juce::ToggleButton m_dontExportTruePeakButton;
+    juce::TextButton m_okButton;
+    bool m_useCommas;
+    bool m_exportTruePeak;
+};
 
-    if ( m_volumeText != volumeText )
-    {
-        m_volumeText = volumeText;
-        repaint();
-    }
-}
+

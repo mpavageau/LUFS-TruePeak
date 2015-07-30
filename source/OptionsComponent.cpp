@@ -21,14 +21,16 @@
 
 #include "AppIncsAndDefs.h"
 
-#include "ChooseDigitSeparatorComponent.h"
+#include "OptionsComponent.h"
 
-ChooseDigitSeparatorComponent::ChooseDigitSeparatorComponent( juce::ApplicationProperties & _settings )
-    : m_useCommas( true )
-    , m_settings( _settings )
+OptionsComponent::OptionsComponent( juce::ApplicationProperties & _settings )
+    : m_settings( _settings )
     , m_useCommasString( "useCommasForDecimalMarkForDataExport" )
+    , m_exportTruePeakString( "exportTruePeakValuesInDataExport" )
+    , m_useCommas( true )
+    , m_exportTruePeak( false )
 {
-    setSize( 500, 100 );
+    setSize( 500, 200 );
 
     m_okButton.setButtonText( juce::String( "OK" ) );
     m_okButton.addListener( this );
@@ -36,7 +38,7 @@ ChooseDigitSeparatorComponent::ChooseDigitSeparatorComponent( juce::ApplicationP
     m_okButton.setColour( juce::TextButton::buttonOnColourId, LUFS_COLOR_FONT );
     m_okButton.setColour( juce::TextButton::textColourOffId, LUFS_COLOR_FONT );
     m_okButton.setColour( juce::TextButton::textColourOnId, LUFS_COLOR_BACKGROUND );
-    m_okButton.setBounds( 330, 30, 80, 40 );
+    m_okButton.setBounds( 320, 60, 100, 80 );
     addAndMakeVisible( &m_okButton );
         
     m_commaButton.setBounds( 240, 21, 20, 20 );
@@ -51,7 +53,21 @@ ChooseDigitSeparatorComponent::ChooseDigitSeparatorComponent( juce::ApplicationP
     m_pointButton.setClickingTogglesState( true );
     addAndMakeVisible( &m_pointButton );
 
+    m_exportTruePeakButton.setBounds( 240, 121, 20, 20 );
+    m_exportTruePeakButton.setRadioGroupId( 2 );
+    m_exportTruePeakButton.addListener( this );
+    m_exportTruePeakButton.setClickingTogglesState( true );
+    addAndMakeVisible( &m_exportTruePeakButton );
+    
+    m_dontExportTruePeakButton.setBounds( 240, 160, 20, 20 );
+    m_dontExportTruePeakButton.setRadioGroupId( 2 );
+    m_dontExportTruePeakButton.addListener( this );
+    m_dontExportTruePeakButton.setClickingTogglesState( true );
+    addAndMakeVisible( &m_dontExportTruePeakButton );
+    
     m_useCommas = m_settings.getUserSettings()->getBoolValue( m_useCommasString, "true" );
+
+    m_exportTruePeak = m_settings.getUserSettings()->getBoolValue( m_exportTruePeakString, "false" );
     
     if ( m_useCommas )
     {
@@ -61,14 +77,22 @@ ChooseDigitSeparatorComponent::ChooseDigitSeparatorComponent( juce::ApplicationP
     {
         m_pointButton.setToggleState( true, juce::dontSendNotification );
     }
-    //setClickingTogglesState( true );//setState( juce::Button::buttonNormal );
+    
+    if ( m_exportTruePeak )
+    {
+        m_exportTruePeakButton.setToggleState( true, juce::dontSendNotification );
+    }
+    else
+    {
+        m_dontExportTruePeakButton.setToggleState( true, juce::dontSendNotification );
+    }
 }
 
-ChooseDigitSeparatorComponent::~ChooseDigitSeparatorComponent()
+OptionsComponent::~OptionsComponent()
 {
 }
 
-void ChooseDigitSeparatorComponent::paint( juce::Graphics & g )
+void OptionsComponent::paint( juce::Graphics & g )
 {
     g.fillAll( LUFS_COLOR_BACKGROUND );
 
@@ -79,9 +103,12 @@ void ChooseDigitSeparatorComponent::paint( juce::Graphics & g )
 
     g.drawFittedText( "Use decimal comma", 20, 20, 210, 20, juce::Justification::centredRight, 1, 0.01f );
     g.drawFittedText( "Use decimal point", 20, 60, 210, 20, juce::Justification::centredRight, 1, 0.01f );
+    
+    g.drawFittedText( "Export True Peak values", 20, 120, 210, 20, juce::Justification::centredRight, 1, 0.01f );
+    g.drawFittedText( "Dont export True Peak values", 20, 160, 210, 20, juce::Justification::centredRight, 1, 0.01f );
 }
 
-void ChooseDigitSeparatorComponent::buttonClicked( juce::Button * _button ) 
+void OptionsComponent::buttonClicked( juce::Button * _button ) 
 {
     if ( _button == &m_okButton )
     {
@@ -90,9 +117,42 @@ void ChooseDigitSeparatorComponent::buttonClicked( juce::Button * _button )
         if ( window != nullptr )
             window->exitModalState( 51 );
     }
-    else if ( _button == &m_commaButton )
+    else if ( _button == &m_commaButton || _button == &m_pointButton )
     {
         m_useCommas = m_commaButton.getToggleState();
         m_settings.getUserSettings()->setValue( m_useCommasString, m_useCommas ? 1 : 0 );
     }
+    else if ( _button == &m_exportTruePeakButton || _button == &m_dontExportTruePeakButton )
+    {
+        m_exportTruePeak = m_exportTruePeakButton.getToggleState();
+        m_settings.getUserSettings()->setValue( m_exportTruePeakString, m_exportTruePeak ? 1 : 0 );
+    }
 }
+
+
+
+
+Warning colored frame for Momentary value: -8
+Warning colored frame for Short term value: -12
+Warning colored frame for Integrated value: -23
+Warning colored frame and vertical line for True Peak values: -1
+
+
+//==============================================================================
+class DemoSliderPropertyComponent : public SliderPropertyComponent
+{
+public:
+    DemoSliderPropertyComponent (const String& propertyName)
+        : SliderPropertyComponent (propertyName, 0.0, 100.0, 0.001)
+    {
+        setValue (Random::getSystemRandom().nextDouble() * 42.0);
+    }
+
+    void setValue (double newValue) override
+    {
+        slider.setValue (newValue);
+    }
+
+private:
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DemoSliderPropertyComponent)
+};

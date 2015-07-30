@@ -29,9 +29,9 @@ const int lufsYPos = 40;
 
 
 LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
-    : m_hostAppContext( _hostAppContext )
-    , m_audioConfigString( "AudioConfig" )
-{
+    : m_audioConfigString( "AudioConfig" )
+    , m_hostAppContext( _hostAppContext )
+ {
     const juce::XmlElement * audioConfiguration = m_processor.m_settings.getUserSettings()->getXmlValue( m_audioConfigString );
     m_audioDevice.initialise( 6, 6, audioConfiguration, false, juce::String::empty, 0 );
     delete audioConfiguration;

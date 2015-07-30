@@ -58,8 +58,10 @@ public:
 
 private:
 
-    void exportToText( bool useCommasForDigitSeparation );
-
+    void exportToText( bool useCommasForDigitSeparation, bool exportTruePeak );
+    
+    void paintFrame(juce::Graphics& g, int x, int y, int w, int h);
+    
     TimeComponent m_timeComponent;
     FloatComponent m_momentaryComponent;
     FloatComponent m_shortTermComponent;
@@ -75,8 +77,6 @@ private:
 
     juce::ScopedPointer<juce::ResizableCornerComponent> resizer;
     juce::ComponentBoundsConstrainer resizeLimits;
-
-    juce::AudioPlayHead::CurrentPositionInfo lastDisplayedPosition;
 
     ChartView m_chart;
 

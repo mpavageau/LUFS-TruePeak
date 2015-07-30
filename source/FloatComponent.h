@@ -36,9 +36,7 @@ public:
 
 private:
 
-    float makeDigitValue( const float value );
-
-    float m_volume;
+    juce::String m_volumeText;
 
     juce::Colour m_color;
 };

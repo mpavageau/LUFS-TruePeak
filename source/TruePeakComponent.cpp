@@ -24,18 +24,32 @@
 #include "TruePeakComponent.h"
 #include "LufsAudioProcessor.h"
 
-TruePeakComponent::TruePeakComponent()
+TruePeakComponent::TruePeakComponent( float minChartVolume, float maxChartVolume )
     : m_processor( nullptr )
     , m_validSize( 0 )
+    , m_minChartVolume( minChartVolume )
+    , m_maxChartVolume( maxChartVolume )
+    , m_truePeakPassedLimit( false )
 {
     m_valueComponent.setTextColor( COLOR_LUFSTIME );
     addAndMakeVisible( &m_valueComponent );
 
     m_valueComponent.setBounds( 10, 10, 100, 40 );
+    
+    resetVolumeInertia();
+    
+    // kSpeakerArr51 is "L R C Lfe Ls Rs";
+    m_channelNames.add( "L" );
+    m_channelNames.add( "R" );
+    m_channelNames.add( "C" );
+    m_channelNames.add( "Lfe" );
+    m_channelNames.add( "Ls" );
+    m_channelNames.add( "Rs" );
 }
 
 void DEBUGoutput( const char * _text, ...)
 {
+#if defined (LUFS_TRUEPEAK_WINDOWS)
     char formattedText[0x200];
     va_list args ;
     va_start( args, _text );
@@ -51,32 +65,48 @@ void DEBUGoutput( const char * _text, ...)
     juce::Thread::ThreadID threadID = juce::Thread::getCurrentThreadId();
     sprintf_s( formattedTextWithTime, 0x200, "(%.3f) (thread 0x%x) %s", 0.001f * (float)duration.inMilliseconds(), (int)threadID, formattedText);
     DBG( formattedTextWithTime );
+#else
+    _text; // remove warning
+#endif
 }
 
 
 void TruePeakComponent::paint( juce::Graphics & g )
 {
-//    g.fillAll( juce::Colours::red );
+    //g.fillAll( juce::Colours::red );
 
     juce::Font titleFont( 18.f );
     titleFont.setBold(true);
     g.setFont( titleFont );
 
+    const int offsetX = 3;
+    const int width = ( getWidth() - 7 * offsetX ) / 6;
+    const int offsetY = 100;
+    const int height = getHeight() - offsetY - 35;
+    const int offsetText = 21;
+    
+    if ( m_truePeakPassedLimit )
+    {
+        const int frameOffset = 3;
+        const int frameWidth = 5;
+        g.setColour( juce::Colours::red );
+        g.fillRect( frameOffset, frameOffset, getWidth() - 2 * frameOffset, frameWidth );
+        g.fillRect( frameOffset, offsetY - frameOffset - frameWidth, getWidth() - 2 * frameOffset, frameWidth );
+        g.fillRect( frameOffset, frameOffset, frameWidth, offsetY - 2 * frameOffset );
+        g.fillRect( getWidth() - frameOffset - frameWidth, frameOffset, frameWidth, offsetY - 2 * frameOffset );
+    }
+    
     g.setColour( COLOR_LUFSTIME );
-    g.drawFittedText( juce::String( "True Peak" ), 10, 60, 120, 20, juce::Justification::centred, 1, 0.01f );
+    g.drawFittedText( juce::String( "True Peak" ), 0, 60, getWidth(), 20, juce::Justification::centred, 1, 0.01f );
 
+    g.setColour( COLOR_LUFSTIME );
     if ( !m_validSize )
         return;
 
     const int currentIndex = m_validSize - 1;
 
-    juce::Colour colorCurrent = COLOR_BACKGROUND_GRAPH;
-    juce::Colour colorMax = juce::Colours::white;
-
-    const int offsetX = 8;
-    const int width = ( getWidth() - 7 * offsetX ) / 6;
-    const int offsetY = 100;
-    const int height = getHeight() - offsetY - 35;
+    const juce::Colour colorCurrent = COLOR_BACKGROUND_GRAPH;
+    const juce::Colour colorMax = juce::Colours::white;
 
     g.setColour( LUFS_COLOR_BACKGROUND );
 
@@ -93,8 +123,21 @@ void TruePeakComponent::paint( juce::Graphics & g )
     x = 2 * offsetX;
     for (int ch = 0 ; ch < LUFS_TP_MAX_NB_CHANNELS ; ++ch )
     {
-        float currentDecibel = m_processor->m_lufsProcessor.getTruePeakChannelArray(ch)[currentIndex];
-        int y = getVolumeY( height, currentDecibel);
+        float currentDecibels = m_processor->m_lufsProcessor.getTruePeakChannelArray(ch)[currentIndex];
+        float inertiaVolumeDecibels = m_channelInertiaStruct[ch].getCurrentVolume(currentIndex);
+        
+        float uiVolumeDecibels = inertiaVolumeDecibels;
+        
+        if (currentDecibels > inertiaVolumeDecibels)
+        {
+            uiVolumeDecibels = currentDecibels;
+            
+            //store
+            m_channelInertiaStruct[ch].m_index = currentIndex;
+            m_channelInertiaStruct[ch].m_decibelVolume = currentDecibels;
+        }
+        
+        int y = getVolumeY( offsetText, height, uiVolumeDecibels);
         //DEBUGoutput( "currentIndex %d currentDecibel: %.3f -> y %d", currentIndex, currentDecibel, y);
         g.fillRect( x, offsetY + y, width, height - y);
 
@@ -103,12 +146,24 @@ void TruePeakComponent::paint( juce::Graphics & g )
 
     g.setColour( colorMax );
 
+    juce::Font figureFont( 12.f );
+    figureFont.setBold(true);
+    g.setFont( figureFont );
+    
     x = 2 * offsetX;
     for (int ch = 0 ; ch < LUFS_TP_MAX_NB_CHANNELS ; ++ch )
     {
         float maxDecibel = m_processor->m_lufsProcessor.getTruePeakChannelMax(ch);
-        int y = getVolumeY( height, maxDecibel);
+        int y = getVolumeY( offsetText, height, maxDecibel);
         g.fillRect( x, offsetY + y, width, 1);
+        
+        g.fillRect( x, offsetY + height, width, 1);
+        
+        const juce::String text = maxDecibel > -100.f ? juce::String(maxDecibel, 1) : juce::String((int)maxDecibel);
+        g.drawFittedText( text, x, offsetY + y - 21, width, 20, juce::Justification::centred, 1, 0.01f );
+        
+        g.drawFittedText( m_channelNames[ch], x, offsetY + height + 3, width, 20, juce::Justification::centred, 1, 0.01f );
+        
 
         x += offsetX + width;
     }
@@ -129,8 +184,11 @@ void TruePeakComponent::update()
 
     if ( m_validSize )
     {
-        //int index = m_validSize - 1;
-        m_valueComponent.setVolume( m_processor->m_lufsProcessor.getTruePeak()/*getTruePeakArray()[ index ]*/ );
+        float truePeak = m_processor->m_lufsProcessor.getTruePeak();
+        
+        m_valueComponent.setVolume( truePeak );
+        
+        m_truePeakPassedLimit = truePeak >= -1.f;
     }
 
     repaint();
@@ -142,24 +200,42 @@ void TruePeakComponent::reset()
     m_valueComponent.setVolume( DEFAULT_MIN_VOLUME );
 
     repaint();
+    
+    resetVolumeInertia();
 }
 
-int TruePeakComponent::getVolumeY( const int height, const float decibels )
+int TruePeakComponent::getVolumeY( const int offsetText, const int height, const float decibels )
 {
-    static const float minVolume = -18.f;
-    static const float maxVolume = 6.f;
+    const float minVolume = m_minChartVolume; // -18.f;
+    const float maxVolume = m_maxChartVolume; // 6.f;
 
+    jassert(offsetText < height);
+    
     if ( decibels > maxVolume )
-        return 0;
+        return offsetText;
 
     if ( decibels < minVolume )
         return height;
-
-    const float offset = 12.f; // offset to avoid being too close to 0 in log function 
+    
+    const float offset = 12.f; // offset to avoid being too close to 0 in log function
     float value = logf( offset - decibels );
     static const float valueMin = logf( offset - minVolume );
     static const float valueMax = logf( offset - maxVolume );
 
-    return int( ( value - valueMax ) * (float) ( height ) / ( valueMin - valueMax ) );
+    return offsetText + int( ( value - valueMax ) * (float) ( height - offsetText ) / ( valueMin - valueMax ) );
 }
 
+void TruePeakComponent::resetVolumeInertia()
+{
+    for ( int i = 0 ; i < LUFS_TP_MAX_NB_CHANNELS ; ++i )
+    {
+        m_channelInertiaStruct[i].m_decibelVolume = DEFAULT_MIN_VOLUME;
+        m_channelInertiaStruct[i].m_index = 0;
+    }
+}
+
+float TruePeakComponent::InertiaStruct::getCurrentVolume(int index)
+{
+    float decibels = m_decibelVolume - 5.f * (float)(index - m_index);
+    return decibels > DEFAULT_MIN_VOLUME ? decibels : DEFAULT_MIN_VOLUME;
+}

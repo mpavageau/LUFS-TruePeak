@@ -3,12 +3,14 @@ solution "LUFSTruePeak_x32"
     configurations { "Debug", "Release" }
 if ( _ACTION == "vs2012" ) then
     location "build/vs2012"
+    flags { "WinMain", "StaticRuntime", "Unicode", "NoRuntimeChecks" }
 elseif ( _ACTION == "xcode4" ) then
     location "build/xcode4"
+    flags { "WinMain", "StaticRuntime", "Unicode" }
 else
     location "build/todo_set_platform"
+    flags "flags to be set"
 end
-    flags { "WinMain", "StaticRuntime", "Unicode", "NoRuntimeChecks" }
     includedirs { 
         "source", 
         "extern/juce", 
@@ -66,11 +68,26 @@ end
     project "LUFSTruePeak_App_x32"
         kind "WindowedApp"
         language "C++"
-        defines { 
-            "LUFS_TRUEPEAK_APPLICATION",
-            "USING_ASIO", -- comment this out not to use ASIO 
-        }
-     
+		
+if ( _ACTION == "vs2012" ) then
+		defines { 
+			"LUFS_TRUEPEAK_WINDOWS",
+			"LUFS_TRUEPEAK_APPLICATION",
+			"USING_ASIO", -- comment this out not to use ASIO 
+		}
+elseif ( _ACTION == "xcode4" ) then
+		defines { 
+			"LUFS_TRUEPEAK_MACOS",
+			"LUFS_TRUEPEAK_APPLICATION",
+			"USING_ASIO", -- comment this out not to use ASIO 
+		}
+else
+		defines { 
+			"LUFS_TRUEPEAK_APPLICATION",
+			"__DEFINES_TO_BE_ADDED_IN_LUA_CONFIG_FILE__",
+		}
+end
+		
         configuration "Debug"
             defines "DEBUG"
             flags { "Symbols", "ExtraWarnings", }
@@ -83,10 +100,23 @@ end
     project "LUFSTruePeak_Plug_x32"
         kind "SharedLib"
         language "C++"
-        defines { 
+if ( _ACTION == "vs2012" ) then
+		defines { 
+			"LUFS_TRUEPEAK_WINDOWS",
             "LUFS_TRUEPEAK_PLUGIN",
-        }
-            
+		}
+elseif ( _ACTION == "xcode4" ) then
+		defines { 
+			"LUFS_TRUEPEAK_MACOS",
+            "LUFS_TRUEPEAK_PLUGIN",
+		}
+else
+		defines { 
+            "LUFS_TRUEPEAK_PLUGIN",
+			"__DEFINES_TO_BE_ADDED_IN_LUA_CONFIG_FILE__",
+		}
+end
+		
 if ( _ACTION == "xcode4" ) then
         files { 
             "extern/juce/modules/juce_audio_plugin_client/VST/juce_VST_Wrapper.cpp",

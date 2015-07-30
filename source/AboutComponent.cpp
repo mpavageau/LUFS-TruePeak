@@ -69,14 +69,18 @@ void AboutComponent::paint( juce::Graphics & g )
 
     const int centredJustified = juce::Justification::horizontallyJustified | juce::Justification::centredLeft;
 
-    text = "LUFS volume loudness is a subjective loudness, calculated as recommended by International Telecommunication";
+    text = "LUFS volume loudness (Loudness Units - K-weighted - relative to Full Scale) is a subjective loudness,";
     g.drawFittedText( text, xIndent, y, getWidth() - 2 * xIndent, height, centredJustified, 1, 0.01f );
     y += ( height + yIndent );
 
-    text = "Union (ITU), the United Nations specialized agency for information and communication technologies.";
+    text = "calculated as recommended by International Telecommunication Union (ITU), the United Nations specialized";
     g.drawFittedText( text, xIndent, y, getWidth() - 2 * xIndent, height, juce::Justification::centredLeft, 1, 0.01f );
     y += ( height + yIndent );
 
+    text = "agency for information and communication technologies.";
+    g.drawFittedText( text, xIndent, y, getWidth() - 2 * xIndent, height, juce::Justification::centredLeft, 1, 0.01f );
+    y += ( height + yIndent );
+    
     y += ( height + yIndent );
 
     text = "The used algorithm is that specified by document BS 1770 from ITU:";

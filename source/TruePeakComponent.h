@@ -28,7 +28,7 @@ class TruePeakComponent : public juce::Component
 {
 public:
 
-    TruePeakComponent();
+    TruePeakComponent( float minChartVolume, float maxChartVolume );
 
     // juce::Component
     virtual void paint( juce::Graphics & g );
@@ -39,12 +39,28 @@ public:
 
     void reset();
 
+    void pause()    { resetVolumeInertia(); }
+    void resume()   { resetVolumeInertia(); }
+    
 private:
 
-    int getVolumeY( const int height, const float decibels );
+    void resetVolumeInertia();
+    
+    int getVolumeY( const int offsetText, const int height, const float decibels );
 
     FloatComponent m_valueComponent;
     LufsAudioProcessor * m_processor;
+    struct InertiaStruct
+    {
+        float m_decibelVolume;
+        int m_index;
+        float getCurrentVolume(int index);
+    };
+    InertiaStruct m_channelInertiaStruct[LUFS_TP_MAX_NB_CHANNELS];
+    juce::StringArray m_channelNames;
     int m_validSize;
+    float m_minChartVolume;
+    float m_maxChartVolume;
+    bool m_truePeakPassedLimit;
 };
 

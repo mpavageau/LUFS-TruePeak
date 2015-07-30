@@ -88,6 +88,7 @@ public:
     //==============================================================================
     void initialise (const juce::String& commandLine )
     {
+#if defined (LUFS_TRUEPEAK_WINDOWS)
         if ( commandLine.length() )
         {
             if ( commandLine.toLowerCase().endsWith( ".wav" ) )
@@ -103,6 +104,9 @@ public:
             }
         }
         else
+#else
+        commandLine; // unused var
+#endif
         {
             m_mainWindow = new MainWindow();
         }

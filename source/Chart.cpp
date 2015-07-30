@@ -68,11 +68,12 @@ void Chart::paint(juce::Graphics& g)
 {
     juce::Rectangle<int> clipBounds = g.getClipBounds();
 
-    const int imageWidth = getWidth();
+    const int imageWidth = clipBounds.getWidth();
     const int imageHeight = getHeight();
+    const int beginning = clipBounds.getX();
 
     g.setColour( COLOR_BACKGROUND_GRAPH );
-    g.fillRect( 0, 0, imageWidth, imageHeight );
+    g.fillRect( beginning, 0, imageWidth, imageHeight );
 
     if ( m_validSize && clipBounds.getX() < ( m_validSize - 2 ) )
     {
@@ -80,7 +81,6 @@ void Chart::paint(juce::Graphics& g)
         lufsFont.setBold(true);
         g.setFont( lufsFont );
 
-        const int beginning = clipBounds.getX(); 
         int size = imageWidth;
         if ( beginning + size > m_validSize - 2 )
             size = m_validSize - 2 - beginning;
@@ -101,7 +101,7 @@ void Chart::paint(juce::Graphics& g)
             }
         }
 
-        // true peak
+        // true peak vertical lines
         paintTruePeakLines( g, m_processor->m_lufsProcessor.getTruePeakArray(), beginning, size );
 
         // volume lines 
@@ -116,7 +116,8 @@ void Chart::paint(juce::Graphics& g)
         }
 
         g.setColour( COLOR_INTEGRATED );
-        g.fillRect( 0, getVolumeY( imageHeight, m_processor->m_lufsProcessor.getIntegratedVolume() ), imageWidth, 3 );
+        //g.fillRect( 0, getVolumeY( imageHeight, m_processor->m_lufsProcessor.getIntegratedVolume() ), imageWidth, 3 );
+        g.fillRect( clipBounds.getX(), getVolumeY( imageHeight, m_processor->m_lufsProcessor.getIntegratedVolume() ), clipBounds.getWidth(), 3 );
 
         {
             const int factor = 1;
@@ -126,7 +127,8 @@ void Chart::paint(juce::Graphics& g)
 
         // time text
         g.setColour( juce::Colours::black );
-        for ( int i = beginning - 100 ; i < ( beginning + imageWidth ) ; ++i )
+        // don't show time text at far left and far right to make space for "Min vol" and Memory
+        for ( int i = beginning + 40 ; i < ( beginning + imageWidth - 120) ; ++i )
         {
             if ( !( i % 100 ) )
             {
@@ -171,6 +173,7 @@ void Chart::paint(juce::Graphics& g)
             g.drawFittedText( juce::String( v, 0 ), clipBounds.getX() + 5, y - 30, 20, 30, juce::Justification::centredBottom, 1, 0.01f );
         }
     }
+    g.drawFittedText( "Min vol", clipBounds.getX() + 5, imageHeight - 15, 40, 10, juce::Justification::centredLeft, 1, 0.01f );
 
     // memory
     float memoryPercent = 100.f * (float)m_processor->m_lufsProcessor.getValidSize() / (float)m_processor->m_lufsProcessor.getMaxSize();
@@ -181,7 +184,24 @@ void Chart::paint(juce::Graphics& g)
     juce::String memory( "Memory: ");
     memory << juce::String( memoryPercent, 2 );
     memory << " %";
-    g.drawFittedText( memory, clipBounds.getX() + clipBounds.getWidth() - 125, imageHeight - 23, 120, 10, juce::Justification::bottomRight, 1, 0.01f );
+    g.drawFittedText( memory, clipBounds.getX() + clipBounds.getWidth() - 155, imageHeight - 15, 150, 10, juce::Justification::centredRight, 1, 0.01f );
+    
+    if ( m_processor->m_lufsProcessor.isPaused() )
+    {
+        juce::Font pausedFont( 36.f );
+        pausedFont.setBold(true);
+        g.setFont( pausedFont );
+        
+        g.setColour( juce::Colours::red );
+        
+        g.drawFittedText( "Paused",
+                         10, //clipBounds.getX() + clipBounds.getWidth() / 3,
+                         10, //clipBounds.getY() + clipBounds.getHeight() / 3,
+                         clipBounds.getWidth() / 3,
+                         clipBounds.getHeight() / 3, juce::Justification::topLeft, 1, 0.01f );
+        
+        
+    }
 
 }
 
@@ -250,14 +270,9 @@ void Chart::paintTruePeakLines( juce::Graphics& g, const float * _data, const in
     for ( int i = _offset ; i < _offset + _pixels - 2 ; ++i )
     {
         const float decibelTruePeak = *_data++;
-        if ( decibelTruePeak > -0.1f )
+        if ( decibelTruePeak >= DEFAULT_ACCEPTABLE_MAX_TRUE_PEAK )
         {
             g.setColour( juce::Colours::red );
-            g.fillRect( i, 0, 1, imageHeight ); // drawLine( (float)( i ), 0, (float)( i + 1 ), (float)getVolumeY( imageHeight, vol2 ), 3.f );
-        }
-        else if ( decibelTruePeak > -6.1f )
-        {
-            g.setColour( juce::Colours::orange );
             g.fillRect( i, 0, 1, imageHeight ); // drawLine( (float)( i ), 0, (float)( i + 1 ), (float)getVolumeY( imageHeight, vol2 ), 3.f );
         }
     }   

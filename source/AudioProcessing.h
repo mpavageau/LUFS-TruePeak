@@ -59,7 +59,7 @@ public:
 
 private:
 
-    // b signal must be mono
+    // signal b must be mono
     static void convolution( const juce::AudioSampleBuffer & a, const juce::AudioSampleBuffer & b, juce::AudioSampleBuffer & result );
 
     static void polyphase4( const juce::AudioSampleBuffer & source, juce::AudioSampleBuffer & result );

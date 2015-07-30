@@ -40,10 +40,13 @@ float getDecibelVolumeFromLinearVolume(float _linearVolume )
 }
 
 LufsProcessor::LufsProcessor( const int nbChannels )
-    : m_memory( nbChannels, 0 )
-    , m_block( nbChannels, 0 )
-    , m_nbChannels( nbChannels )
+    : m_block( nbChannels, 0 )
+    , m_memory( nbChannels, 0 )
     , m_sampleRate( 0.0 )
+    , m_nbChannels( nbChannels )
+    , m_maxSize( 0 )
+    , m_processSize( 0 )
+    , m_validSize( 0 )
     , m_memorySize( 0 )
     , m_sampleSize100ms( 0 ) 
     , m_squaredInputArray( NULL )
@@ -51,11 +54,8 @@ LufsProcessor::LufsProcessor( const int nbChannels )
     , m_shortTermVolumeArray( NULL )
     , m_integratedVolumeArray( NULL )
     , m_truePeakArray( NULL )
-    , m_maxSize( 0 )
-    , m_processSize( 0 )
-    , m_validSize( 0 )
-    , m_paused( false )
     , m_tempBlock( 1, 4096 )
+    , m_paused( false )
 {
     DEBUGPLUGIN_output("LufsProcessor::LufsProcessor %d channels", nbChannels);
 
@@ -241,7 +241,7 @@ void LufsProcessor::processBlock( juce::AudioSampleBuffer& buffer )
             hundredMillisecondBufferArray[ i ] = &( m_memory.getReadPointer( i )[ sizeDone ] );
 
         const juce::AudioSampleBuffer hundredMillisecondBuffer( (float*const*)hundredMillisecondBufferArray, buffer.getNumChannels(), m_sampleSize100ms );
-        m_truePeakProcessor.process( buffer );
+        m_truePeakProcessor.process( hundredMillisecondBuffer );
 
         addSquaredInputAndTruePeak( sum / m_sampleSize100ms, &m_truePeakProcessor, buffer.getNumChannels() );
 

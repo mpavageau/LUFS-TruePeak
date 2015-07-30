@@ -23,7 +23,7 @@
 
 #include "LufsAudioProcessor.h"
 #include "LufsTruePeakPluginEditor.h"
-#include "ChooseDigitSeparatorComponent.h"
+#include "ExportSettingsComponent.h"
 #include "AboutComponent.h"
 
 void DEBUGPLUGIN_output( const char * _text, ...);
@@ -31,8 +31,9 @@ void DEBUGPLUGIN_output( const char * _text, ...);
 //==============================================================================
 LufsTruePeakPluginEditor::LufsTruePeakPluginEditor (LufsAudioProcessor* ownerFilter)
     : AudioProcessorEditor (ownerFilter)
-    , m_internallyPaused( false )
+    , m_truePeakComponent( -42.f, 6.f ) // -18.f 6.f
     , m_chart( -42.f, 0.f )//-8.f )
+    , m_internallyPaused( false )
 {
     DEBUGPLUGIN_output("LufsTruePeakPluginEditor::LufsTruePeakPluginEditor ownerFilter 0x%x", ownerFilter);
 
@@ -114,6 +115,7 @@ void LufsTruePeakPluginEditor::paint (juce::Graphics& g)
     int x = 10;
     const int width = 120;
     const int height = 60;
+    const int imageY = 100;
     g.setColour( COLOR_LUFSTIME );
     g.drawFittedText( juce::String( "LUFS" ), x, 10, width, 40, juce::Justification::centred, 1, 0.01f );
     x += width;
@@ -124,15 +126,22 @@ void LufsTruePeakPluginEditor::paint (juce::Graphics& g)
 
     g.setColour( COLOR_MOMENTARY );
     g.drawFittedText( juce::String( "Momentary" ), x, height, width, 20, juce::Justification::centred, 1, 0.01f );
+    paintFrame(g, x, 0, width, imageY);
+    
     x += width;
     g.setColour( COLOR_SHORTTERM );
     g.drawFittedText( juce::String( "Short term" ), x, height, width, 20, juce::Justification::centred, 1, 0.01f );
+    paintFrame(g, x, 0, width, imageY);
+
     x += width;
     g.setColour( COLOR_INTEGRATED );
     g.drawFittedText( juce::String( "Integrated" ), x, height, width, 20, juce::Justification::centred, 1, 0.01f );
+    paintFrame(g, x, 0, width, imageY);
+
     x += width;
     g.setColour( COLOR_RANGE );
     g.drawFittedText( juce::String( "Range" ), x, height, width, 20, juce::Justification::centred, 1, 0.01f );
+    
 }
 
 void LufsTruePeakPluginEditor::resized()
@@ -231,24 +240,29 @@ void LufsTruePeakPluginEditor::buttonClicked (juce::Button* button)
 
     if ( button == &m_resetButton )
     {
+        m_truePeakComponent.reset();
         processor->m_lufsProcessor.reset();
 
         m_chart.resetScrolling();
-
+        
         repaint();
     }
     else if ( button == &m_pauseButton )
     {
         if ( processor->m_lufsProcessor.isPaused() )
         {
+            m_truePeakComponent.resume();
             processor->m_lufsProcessor.resume();
             m_pauseButton.setButtonText( juce::String( "Pause" ) );
         }
         else
         {
+            m_truePeakComponent.pause();
             processor->m_lufsProcessor.pause();
             m_pauseButton.setButtonText( juce::String( "Resume" ) );
         }
+        
+        repaint();
     }
     else if ( button == &m_exportButton )
     {
@@ -261,11 +275,11 @@ void LufsTruePeakPluginEditor::buttonClicked (juce::Button* button)
 
         m_internallyPaused = true;
 
-        ChooseDigitSeparatorComponent component( getProcessor()->m_settings );
-        int result = juce::DialogWindow::showModalDialog( "Choose decimal mark for data export", &component, this, LUFS_COLOR_BACKGROUND, true, false, false );
+        ExportSettingsComponent component( getProcessor()->m_settings );
+        int result = juce::DialogWindow::showModalDialog( "Export volume figures to text file", &component, this, LUFS_COLOR_BACKGROUND, true, false, false );
 
         if ( result )
-            exportToText( component.useCommas() );
+            exportToText( component.useCommas(), component.exportTruePeak() );
         
         m_internallyPaused = false;
     }
@@ -276,10 +290,9 @@ void LufsTruePeakPluginEditor::buttonClicked (juce::Button* button)
         about << LufsAudioProcessor::makeAppNameWithVersion();
         juce::DialogWindow::showModalDialog( about, &component, this, LUFS_COLOR_BACKGROUND, true, false, false );
     }
-
 }
 
-void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation )
+void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation, bool exportTruePeak )
 {
     LufsAudioProcessor* processor = getProcessor();
 
@@ -309,7 +322,12 @@ void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation )
 
         juce::FileOutputStream outputStream( file );
 
-        juce::String text = "Time\tMomentary\tShort Term\tIntegrated\n";
+        juce::String text = "Time\tMomentary\tShort Term\tIntegrated";
+        
+        if (exportTruePeak)
+            text += "\tTrue Peak L\tTrue Peak R\tTrue Peak C\tTrue Peak Lfe\tTrue Peak Ls\tTrue Peak Rs";
+            // kSpeakerArr51 is "L R C Lfe Ls Rs";
+        text += "\n";
 
         int ten = 10;
         for ( int tens = 0; tens < updateSize - ten ; tens += ten )
@@ -361,6 +379,24 @@ void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation )
                     integrated = val;
             }
             line << juce::String( integrated, 1 );
+            
+            if ( exportTruePeak )
+            {
+                for ( int truePeakCh = 0 ; truePeakCh < LUFS_TP_MAX_NB_CHANNELS ; ++truePeakCh )
+                {
+                    line << "\t";
+                    
+                    float truePeakVolume = DEFAULT_MIN_VOLUME;
+                    for ( int i = 0 ; i < ten ; ++i )
+                    {
+                        float val = processor->m_lufsProcessor.getTruePeakChannelArray(truePeakCh)[ tens + i ];
+                        if ( truePeakVolume < val  )
+                            truePeakVolume = val;
+                    }
+                    line << juce::String( truePeakVolume, 1 );
+                }
+            }
+            
             line << "\n";
 
             if ( useCommasForDigitSeparation )
@@ -371,4 +407,15 @@ void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation )
 
         outputStream.writeText( text, false, false );
     }
+}
+
+void LufsTruePeakPluginEditor::paintFrame(juce::Graphics& g, int x, int y, int w, int h)
+{
+    const int frameOffset = 3;
+    const int frameWidth = 5;
+    g.setColour( juce::Colours::red );
+    g.fillRect( x + frameOffset, y + frameOffset, w - 2 * frameOffset, frameWidth );
+    g.fillRect( x + frameOffset, y + h - frameOffset - frameWidth, w - 2 * frameOffset, frameWidth );
+    g.fillRect( x + frameOffset, y + frameOffset, frameWidth, h - 2 * frameOffset );
+    g.fillRect( x + w - frameOffset - frameWidth, y + frameOffset, frameWidth, h - 2 * frameOffset );
 }

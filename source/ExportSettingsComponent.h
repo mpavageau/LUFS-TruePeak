@@ -21,14 +21,14 @@
 
 #pragma once 
 
-class ChooseDigitSeparatorComponent 
+class ExportSettingsComponent
     : public juce::Component
     , public juce::Button::Listener
 {
 public:
 
-    ChooseDigitSeparatorComponent( juce::ApplicationProperties & _settings );
-    virtual ~ChooseDigitSeparatorComponent();
+    ExportSettingsComponent( juce::ApplicationProperties & _settings );
+    virtual ~ExportSettingsComponent();
 
     // juce::Component
     virtual void paint( juce::Graphics & g ) override;
@@ -36,16 +36,21 @@ public:
     // juce::Button::Listener
     virtual void buttonClicked( juce::Button* ) override;
 
-    inline bool useCommas() const { return m_useCommas; }
+    bool useCommas() const { return m_useCommas; }
+    bool exportTruePeak() const { return m_exportTruePeak; }
 
 private:
 
     juce::ApplicationProperties & m_settings;
     juce::String m_useCommasString;
+    juce::String m_exportTruePeakString;
     juce::ToggleButton m_commaButton;
     juce::ToggleButton m_pointButton;
+    juce::ToggleButton m_exportTruePeakButton;
+    juce::ToggleButton m_dontExportTruePeakButton;
     juce::TextButton m_okButton;
     bool m_useCommas;
+    bool m_exportTruePeak;
 };
 
 

@@ -51,7 +51,7 @@ public:
 private:
 
     void updateAudioDeviceName();
-
+    
     LufsAudioProcessor m_processor;
 
     // audio manager
@@ -62,7 +62,7 @@ private:
     juce::StringArray m_inputChannelNames;
 
     juce::String m_audioConfigString;
-
+    
     bool m_hostAppContext; // should be false when component is used in a plug
 };
 

@@ -3,12 +3,14 @@ solution "LUFSTruePeak_x64"
     configurations { "Debug", "Release" }
 if ( _ACTION == "vs2012") then
     location "build/vs2012"
+    flags { "WinMain", "StaticRuntime", "Unicode", "NoRuntimeChecks" }
 elseif ( _ACTION == "xcode4") then
     location "build/xcode4"
+    flags { "WinMain", "StaticRuntime", "Unicode" }
 else
     location "build/todo_set_platform"
+    flags "flags to be set"
 end
-    flags { "WinMain", "StaticRuntime", "Unicode", "NoRuntimeChecks" }
     includedirs { 
         "source", 
         "extern/juce", 
