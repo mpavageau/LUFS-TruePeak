@@ -42,7 +42,7 @@
 #define JUCE_MODULE_AVAILABLE_juce_opengl                0
 #define JUCE_MODULE_AVAILABLE_juce_video                 0
 
-#ifdef USING_ASIO
+#ifdef LUFS_TRUEPEAK_USING_ASIO
 #define JUCE_ASIO 1
 #endif 
 
@@ -53,6 +53,7 @@
 //#define JUCE_PLUGINHOST_VST3 1
 
 #define JucePlugin_Name "LUFS-TruePeak"
+#define JucePlugin_Desc "Measures LUFS and TruePeak values"
 #define JucePlugin_Version                1.1.0
 #define JucePlugin_VersionCode            0x10100
 #define JucePlugin_VersionString          "1.1.0"
@@ -66,9 +67,14 @@
 #endif 
 
 #define JUCE_VST3_CAN_REPLACE_VST2 0
+/*
+JUCE_VST3_CAN_REPLACE_VST2 commit comment:
+Added VST3->VST2 backwards compatibility, with a flag JUCE_VST3_CAN_REPLACE_VST2 
+to disable this if you want your VST2 + 3 versions to use different IDs and not be interchangable.
+*/
 
 #define JUCE_PLUGINHOST_VST 0
-//#define JUCE_PLUGINHOST_AU 0
+#define JUCE_PLUGINHOST_AU 0
 
 //==============================================================================
 // Audio plugin settings..
@@ -78,14 +84,28 @@
 // Audio plugin settings..
 
 #define JucePlugin_Build_VST 1
-#define JucePlugin_Build_VST3 1
+
+#if defined LUFS_TRUEPEAK_USING_VST3
+    #define JucePlugin_Build_VST3 1
+#else
+    #define JucePlugin_Build_VST3 0
+#endif
+
 #define JucePlugin_Build_AU               1
 #define JucePlugin_Build_RTAS             0
-#define JucePlugin_Build_AAX              0
+
+#if defined LUFS_TRUEPEAK_USING_AAX
+    #define JucePlugin_Build_AAX 1
+#else
+    #define JucePlugin_Build_AAX 0
+#endif
 
 #define JucePlugin_PluginCode             'mluf'
 #define JucePlugin_Manufacturer           "Mathieu Pavageau"
 #define JucePlugin_ManufacturerCode       'mpav'
+#define JucePlugin_ManufacturerWebsite    "www.repetito.com"
+#define JucePlugin_ManufacturerEmail      "contact@repetito.com"
+
 //#define MLUFS_TESTING_STEREO
 #ifdef MLUFS_TESTING_STEREO
 #pragma message ( "MLUFS_TESTING_STEREO" )
@@ -97,6 +117,7 @@
     #define JucePlugin_MaxNumOutputChannels   LUFS_TP_MAX_NB_CHANNELS
     #define JucePlugin_PreferredChannelConfigurations  {1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}
 #endif 
+
 #define JucePlugin_IsSynth                0
 #define JucePlugin_WantsMidiInput         0
 #define JucePlugin_ProducesMidiOutput     0
@@ -121,6 +142,9 @@
 #define JucePlugin_AAXPluginId            JucePlugin_PluginCode
 #define JucePlugin_AAXCategory            AAX_ePlugInCategory_Dynamics
 #define JucePlugin_AAXDisableBypass       0
+
+//#define JucePlugin_AAXLibs_path           "../../extern/aaxsdk"
+#define JucePlugin_AAXLibs_path           "..\\..\\extern\\aaxsdk\\Libs"
 
 #else // defined ( LUFS_TRUEPEAK_PLUGIN )
 
