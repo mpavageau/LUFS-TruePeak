@@ -32,6 +32,10 @@
 
 #ifdef _MSC_VER
  #include <windows.h>
+
+#pragma warning(push) // mpavageau
+#pragma warning(disable: 4996) // mpavageau
+
 #else
  #include <Cocoa/Cocoa.h>
 #endif
@@ -1019,5 +1023,9 @@ AAX_Result JUCE_CDECL GetEffectDescriptions (AAX_ICollection* collection)
 
     return AAX_ERROR_NULL_OBJECT;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop) // mpavageau
+#endif
 
 #endif
