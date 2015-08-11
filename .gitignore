@@ -1,3 +1,5 @@
 build
+extern/aaxsdk
 extern/asiosdk
 extern/vstsdk2.4
+extern/vstsdk3.6
