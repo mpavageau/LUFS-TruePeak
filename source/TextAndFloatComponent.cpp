@@ -23,12 +23,13 @@
 
 #include "TextAndFloatComponent.h"
 
-TextAndFloatComponent::TextAndFloatComponent(const char * name, juce::Colour color)
+TextAndFloatComponent::TextAndFloatComponent(const char * name, juce::Colour color, bool invertedWarning)
     : juce::Component( name )
     , m_floatComponent( color )
     , m_color( color )
     , m_thresholdVolume( 0.f )
     , m_showWarningFrame( false )
+    , m_invertedWarning( invertedWarning )
 {
     addAndMakeVisible( &m_floatComponent );
 }
@@ -60,20 +61,42 @@ void TextAndFloatComponent::setVolume( const float volume )
 {
     m_floatComponent.setVolume( volume );
 
-    if ( m_showWarningFrame )
+    if ( m_invertedWarning )
     {
-        if ( volume < m_thresholdVolume )
+        if ( m_showWarningFrame )
         {
-            m_showWarningFrame = false;
-            repaint();
+            if ( volume > m_thresholdVolume )
+            {
+                m_showWarningFrame = false;
+                repaint();
+            }
+        }
+        else
+        {
+            if ( volume < m_thresholdVolume )
+            {
+                m_showWarningFrame = true;
+                repaint();
+            }
         }
     }
     else
     {
-        if ( volume > m_thresholdVolume )
+        if ( m_showWarningFrame )
         {
-            m_showWarningFrame = true;
-            repaint();
+            if ( volume < m_thresholdVolume )
+            {
+                m_showWarningFrame = false;
+                repaint();
+            }
+        }
+        else
+        {
+            if ( volume > m_thresholdVolume )
+            {
+                m_showWarningFrame = true;
+                repaint();
+            }
         }
     }
 }
@@ -90,7 +113,7 @@ void TextAndFloatComponent::setThresholdVolume(float thresholdVolume)
 void TextAndFloatComponent::paintFrame( juce::Graphics& g )
 {
     const int frameOffset = 3;
-    const int frameWidth = 5;
+    const int frameWidth = 7;
     g.setColour( juce::Colours::red );
     g.fillRect( frameOffset, frameOffset, getWidth() - 2 * frameOffset, frameWidth );
     g.fillRect( frameOffset, getHeight() - frameOffset - frameWidth, getWidth() - 2 * frameOffset, frameWidth );
@@ -98,4 +121,8 @@ void TextAndFloatComponent::paintFrame( juce::Graphics& g )
     g.fillRect( getWidth() - frameOffset - frameWidth, frameOffset, frameWidth, getHeight() - 2 * frameOffset );
 }
 
+void TextAndFloatComponent::juceValueHasChanged(double value)
+{
+    setThresholdVolume((float)value); 
+}
 

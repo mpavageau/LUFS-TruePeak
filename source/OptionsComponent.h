@@ -21,13 +21,21 @@
 
 #pragma once 
 
+class TextAndFloatComponent;
+
 class OptionsComponent
     : public juce::Component
     , public juce::Button::Listener
 {
 public:
 
-    OptionsComponent( juce::ApplicationProperties & _settings );
+    OptionsComponent( juce::ApplicationProperties & settings,
+        juce::Value & momentaryThreshold,
+        juce::Value & shortTermThreshold,
+        juce::Value & integratedThreshold,
+        juce::Value & rangeThreshold,
+        juce::Value & truePeakThreshold );
+
     virtual ~OptionsComponent();
 
     // juce::Component
@@ -38,16 +46,9 @@ public:
 
 private:
 
+    juce::PropertyPanel m_propertyPanel;
     juce::ApplicationProperties & m_settings;
-    juce::String m_useCommasString;
-    juce::String m_exportTruePeakString;
-    juce::ToggleButton m_commaButton;
-    juce::ToggleButton m_pointButton;
-    juce::ToggleButton m_exportTruePeakButton;
-    juce::ToggleButton m_dontExportTruePeakButton;
     juce::TextButton m_okButton;
-    bool m_useCommas;
-    bool m_exportTruePeak;
 };
 
 

@@ -23,10 +23,37 @@
 
 #include "AudioProcessing.h"
 #include "LufsTruePeakComponent.h"
+#include "OptionsComponent.h"
 
 const juce::String g_windowStateString( "windowState" );
 
-//#define TESTING_CHANNELSELECTOR
+// custom look and feel 
+class MyLookAndFeel : public juce::LookAndFeel_V2
+{
+    virtual void drawPropertyPanelSectionHeader (juce::Graphics& g, const juce::String& name,
+        bool isOpen, int width, int height)
+    {
+        const float buttonSize = height * 0.75f;
+        const float buttonIndent = (height - buttonSize) * 0.5f;
+
+        drawTreeviewPlusMinusBox (g, juce::Rectangle<float> (buttonIndent, buttonIndent, buttonSize, buttonSize), juce::Colours::white, isOpen, false);
+
+        const int textX = (int) (buttonIndent * 2.0f + buttonSize + 2.0f);
+
+        g.setColour (LUFS_COLOR_FONT);
+        g.setFont (juce::Font (height * 0.7f, juce::Font::bold));
+        g.drawText (name, textX, 0, width - textX - 4, height, juce::Justification::centredLeft, true);
+    }
+
+    virtual juce::Rectangle<int> getPropertyComponentContentPosition (juce::PropertyComponent& component)
+    {
+        //const int textW = juce::jmin (200, component.getWidth() / 2);
+        const int textW = 2 * component.getWidth() / 5; // larger area for text
+        return juce::Rectangle<int> (textW, 1, component.getWidth() - textW - 1, component.getHeight() - 3);
+    }
+
+
+};
 
 class MainWindow : public juce::DocumentWindow
 {
@@ -37,8 +64,8 @@ public:
                           juce::DocumentWindow::allButtons,
                           true)
     {
-        LufsTruePeakComponent * component = new LufsTruePeakComponent( true );
-        setContentOwned( component, true );
+        LufsTruePeakComponent * lufsTruePeakComponent = new LufsTruePeakComponent( true );
+        setContentOwned( lufsTruePeakComponent, true );
 
         // Centre the window on the screen
         centreWithSize( getWidth(), getHeight() );
@@ -49,11 +76,13 @@ public:
         // And show it!
         setVisible (true);
 
-        juce::String windowState = component->getProcessor()->m_settings.getUserSettings()->getValue( g_windowStateString );
+        juce::String windowState = lufsTruePeakComponent->getProcessor()->m_settings.getUserSettings()->getValue( g_windowStateString );
         restoreWindowStateFromString( windowState );
 
         setColour( MainWindow::backgroundColourId, LUFS_COLOR_BACKGROUND );
         setColour( MainWindow::textColourId, LUFS_COLOR_FONT );
+
+        juce::LookAndFeel::setDefaultLookAndFeel(&m_lookAndFeel);
     }
 
     ~MainWindow()
@@ -73,6 +102,8 @@ public:
         // MainWindow object will be deleted by the Application class.
         juce::JUCEApplication::quit();
     }
+
+    MyLookAndFeel m_lookAndFeel;
 };
 
 //==============================================================================

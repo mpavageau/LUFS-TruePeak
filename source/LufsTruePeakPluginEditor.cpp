@@ -24,20 +24,26 @@
 #include "LufsAudioProcessor.h"
 #include "LufsTruePeakPluginEditor.h"
 #include "ExportSettingsComponent.h"
+#include "OptionsComponent.h"
 #include "AboutComponent.h"
 
 void DEBUGPLUGIN_output( const char * _text, ...);
 
 //==============================================================================
-LufsTruePeakPluginEditor::LufsTruePeakPluginEditor (LufsAudioProcessor* ownerFilter)
+LufsTruePeakPluginEditor::LufsTruePeakPluginEditor(LufsAudioProcessor* ownerFilter)
     : AudioProcessorEditor (ownerFilter)
-    , m_momentaryComponent( "Momentary", COLOR_MOMENTARY )
-    , m_shortTermComponent( "Short Term", COLOR_SHORTTERM)
-    , m_integratedComponent( "Integrated", COLOR_INTEGRATED )
-    , m_rangeComponent( "Range", COLOR_RANGE )
+    , m_momentaryComponent( "Momentary", COLOR_MOMENTARY, false )
+    , m_shortTermComponent( "Short Term", COLOR_SHORTTERM, false )
+    , m_integratedComponent( "Integrated", COLOR_INTEGRATED, false )
+    , m_rangeComponent( "Range", COLOR_RANGE, true )
     , m_truePeakComponent( -42.f, 6.f ) // -18.f 6.f
     , m_chart( -42.f, 0.f )//-8.f )
     , m_internallyPaused( false )
+    , m_momentaryThreshold( getProcessor()->m_settings.getUserSettings(), "MomentaryThreshold", -8.f)
+    , m_shortTermThreshold( getProcessor()->m_settings.getUserSettings(), "ShortTermThreshold", -15.f)
+    , m_integratedThreshold( getProcessor()->m_settings.getUserSettings(), "IntegratedThreshold", -23.f)
+    , m_rangeThreshold( getProcessor()->m_settings.getUserSettings(), "RangeThreshold", 10.f)
+    , m_truePeakThreshold( getProcessor()->m_settings.getUserSettings(), "TruePeakThreshold", -1.f)
 {
     DEBUGPLUGIN_output("LufsTruePeakPluginEditor::LufsTruePeakPluginEditor ownerFilter 0x%x", ownerFilter);
 
@@ -81,6 +87,14 @@ LufsTruePeakPluginEditor::LufsTruePeakPluginEditor (LufsAudioProcessor* ownerFil
     m_aboutButton.setColour( juce::TextButton::textColourOnId, LUFS_COLOR_BACKGROUND );
     addAndMakeVisible( &m_aboutButton );
 
+    m_optionsButton.setButtonText( juce::String( "Options" ) );
+    m_optionsButton.addListener( this );
+    m_optionsButton.setColour( juce::TextButton::buttonColourId, LUFS_COLOR_BACKGROUND );
+    m_optionsButton.setColour( juce::TextButton::buttonOnColourId, LUFS_COLOR_FONT );
+    m_optionsButton.setColour( juce::TextButton::textColourOffId, LUFS_COLOR_FONT );
+    m_optionsButton.setColour( juce::TextButton::textColourOnId, LUFS_COLOR_BACKGROUND );
+    addAndMakeVisible( &m_optionsButton );
+    
     m_chart.setProcessor( getProcessor() );
     addAndMakeVisible( &m_chart );
 
@@ -88,6 +102,12 @@ LufsTruePeakPluginEditor::LufsTruePeakPluginEditor (LufsAudioProcessor* ownerFil
     addAndMakeVisible( &m_truePeakComponent );  
 
     setSize( LUFS_EDITOR_WIDTH, LUFS_EDITOR_HEIGHT );
+
+    m_momentaryThreshold.addListener(&m_momentaryComponent);
+    m_shortTermThreshold.addListener(&m_shortTermComponent);
+    m_integratedThreshold.addListener(&m_integratedComponent);
+    m_rangeThreshold.addListener(&m_rangeComponent);
+    m_truePeakThreshold.addListener(&m_truePeakComponent.m_valueComponent);
 
     startTimer( 100 );
 }
@@ -152,6 +172,10 @@ void LufsTruePeakPluginEditor::resized()
     buttonY = 2 * buttonYOffset;
     m_exportButton.setBounds( x, buttonY, width / 2, buttonHeight );
     buttonY += ( buttonHeight + buttonYOffset );
+    m_optionsButton.setBounds( x, buttonY, width / 2, buttonHeight );
+    
+    x += 10 + width / 2;
+    buttonY = 2 * buttonYOffset;
     m_aboutButton.setBounds( x, buttonY, width / 2, buttonHeight );
 
     m_chart.setBounds( imageX, imageY, imageWidth, imageHeight ); 
@@ -260,6 +284,15 @@ void LufsTruePeakPluginEditor::buttonClicked (juce::Button* button)
         juce::String about( "About " );
         about << LufsAudioProcessor::makeAppNameWithVersion();
         juce::DialogWindow::showModalDialog( about, &component, this, LUFS_COLOR_BACKGROUND, true, false, false );
+    }
+    else if ( button == &m_optionsButton )
+    {
+        OptionsComponent component( getProcessor()->m_settings, 
+            m_momentaryThreshold, m_shortTermThreshold, m_integratedThreshold, 
+            m_rangeThreshold, m_truePeakThreshold);
+
+        juce::String about( "Options: threshold volumes for warnings" );
+        juce::DialogWindow::showModalDialog( about, &component, this, juce::Colours::grey/*LUFS_COLOR_BACKGROUND*/, true, false, false );
     }
 }
 

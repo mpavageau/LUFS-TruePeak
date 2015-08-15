@@ -23,69 +23,85 @@
 
 #include "OptionsComponent.h"
 
-OptionsComponent::OptionsComponent( juce::ApplicationProperties & _settings )
-    : m_settings( _settings )
-    , m_useCommasString( "useCommasForDecimalMarkForDataExport" )
-    , m_exportTruePeakString( "exportTruePeakValuesInDataExport" )
-    , m_useCommas( true )
-    , m_exportTruePeak( false )
-{
-    setSize( 500, 200 );
+#include "TextAndFloatComponent.h"
 
+
+// Warning colored frame and vertical line for True Peak values: -1
+
+class SliderComponent : public juce::SliderPropertyComponent
+{
+public:
+    SliderComponent(juce::Value & value, const juce::String &text, float minVolume, float maxVolume)
+        : SliderPropertyComponent(value, text, minVolume, maxVolume, 0.001)
+    {
+        // slider has following colors:
+        // backgroundColourId, thumbColourId,
+        // trackColourId
+        // rotarySliderFillColourId, rotarySliderOutlineColourId
+        // textBoxTextColourId
+        // textBoxBackgroundColourId, textBoxHighlightColourId, textBoxOutlineColourId
+        slider.setColour(slider.textBoxTextColourId, juce::Colours::red); 
+        slider.setColour(slider.textBoxBackgroundColourId, LUFS_COLOR_BACKGROUND); 
+        slider.setColour(slider.textBoxHighlightColourId, LUFS_COLOR_FONT); 
+        slider.setColour(slider.textBoxOutlineColourId, LUFS_COLOR_FONT); 
+
+        slider.setColour(slider.thumbColourId, juce::Colour(LUFS_COLOR_BACKGROUND).brighter(0.3f)); // value LUFS_COLOR_FONT
+        slider.setColour(slider.backgroundColourId, LUFS_COLOR_BACKGROUND);
+        slider.setColour(slider.textBoxTextColourId, LUFS_COLOR_FONT);
+
+        // property component has backgroundColourId and labelTextColourId
+        setColour(labelTextColourId, LUFS_COLOR_FONT);
+        setColour(backgroundColourId, LUFS_COLOR_BACKGROUND);
+    }
+    
+    void setValue (double newValue) override
+    {
+        slider.setValue (newValue);
+    }
+};
+
+OptionsComponent::OptionsComponent( juce::ApplicationProperties & settings,
+        juce::Value & momentaryThreshold,
+        juce::Value & shortTermThreshold,
+        juce::Value & integratedThreshold,
+        juce::Value & rangeThreshold,
+        juce::Value & truePeakThreshold )
+    : m_settings( settings )
+{
+    setSize( 1100, 250 );
+    
     m_okButton.setButtonText( juce::String( "OK" ) );
-    m_okButton.addListener( this );
     m_okButton.setColour( juce::TextButton::buttonColourId, LUFS_COLOR_BACKGROUND );
     m_okButton.setColour( juce::TextButton::buttonOnColourId, LUFS_COLOR_FONT );
     m_okButton.setColour( juce::TextButton::textColourOffId, LUFS_COLOR_FONT );
     m_okButton.setColour( juce::TextButton::textColourOnId, LUFS_COLOR_BACKGROUND );
-    m_okButton.setBounds( 320, 60, 100, 80 );
+    m_okButton.setBounds( 600, 175, 100, 50 );
     addAndMakeVisible( &m_okButton );
-        
-    m_commaButton.setBounds( 240, 21, 20, 20 );
-    m_commaButton.setRadioGroupId( 1 );
-    m_commaButton.addListener( this );
-    m_commaButton.setClickingTogglesState( true );
-    addAndMakeVisible( &m_commaButton );
+    m_okButton.addListener( this );
+    m_okButton.setWantsKeyboardFocus(true); // doesn't get focus :(
 
-    m_pointButton.setBounds( 240, 60, 20, 20 );
-    m_pointButton.setRadioGroupId( 1 );
-    m_pointButton.addListener( this );
-    m_pointButton.setClickingTogglesState( true );
-    addAndMakeVisible( &m_pointButton );
+    juce::Array<juce::PropertyComponent*> truePeakComponents;
 
-    m_exportTruePeakButton.setBounds( 240, 121, 20, 20 );
-    m_exportTruePeakButton.setRadioGroupId( 2 );
-    m_exportTruePeakButton.addListener( this );
-    m_exportTruePeakButton.setClickingTogglesState( true );
-    addAndMakeVisible( &m_exportTruePeakButton );
-    
-    m_dontExportTruePeakButton.setBounds( 240, 160, 20, 20 );
-    m_dontExportTruePeakButton.setRadioGroupId( 2 );
-    m_dontExportTruePeakButton.addListener( this );
-    m_dontExportTruePeakButton.setClickingTogglesState( true );
-    addAndMakeVisible( &m_dontExportTruePeakButton );
-    
-    m_useCommas = m_settings.getUserSettings()->getBoolValue( m_useCommasString, "true" );
+    SliderComponent * momentaryComponent = new SliderComponent(momentaryThreshold, "Threshold for Momentary volume", -30.f, 0.f);
+    truePeakComponents.add(momentaryComponent);
 
-    m_exportTruePeak = m_settings.getUserSettings()->getBoolValue( m_exportTruePeakString, "false" );
-    
-    if ( m_useCommas )
-    {
-        m_commaButton.setToggleState( true, juce::dontSendNotification );
-    }
-    else
-    {
-        m_pointButton.setToggleState( true, juce::dontSendNotification );
-    }
-    
-    if ( m_exportTruePeak )
-    {
-        m_exportTruePeakButton.setToggleState( true, juce::dontSendNotification );
-    }
-    else
-    {
-        m_dontExportTruePeakButton.setToggleState( true, juce::dontSendNotification );
-    }
+    SliderComponent * shortTermComponent = new SliderComponent(shortTermThreshold, "Threshold for Short Term volume", -30.f, 0.f);
+    truePeakComponents.add(shortTermComponent);
+
+    SliderComponent * integratedComponent = new SliderComponent(integratedThreshold, "Threshold for Integrated volume", -30.f, 0.f);
+    truePeakComponents.add(integratedComponent);
+
+    SliderComponent * rangeComponent = new SliderComponent(rangeThreshold, "Threshold for volume Range", 5.f, 40.f);
+    truePeakComponents.add(rangeComponent);
+
+    SliderComponent * truePeakComponent = new SliderComponent(truePeakThreshold, "Threshold for True Peak values (colored frame and red vertical lines)", -10.f, 10.f);
+    truePeakComponents.add(truePeakComponent);
+
+    addAndMakeVisible(m_propertyPanel);
+    m_propertyPanel.addSection("Define the threshold volumes for each volume value", truePeakComponents);
+
+    const int offset = 4;
+    m_propertyPanel.setBounds(offset, offset, getWidth() - 2 * offset, 175);
 }
 
 OptionsComponent::~OptionsComponent()
@@ -95,17 +111,6 @@ OptionsComponent::~OptionsComponent()
 void OptionsComponent::paint( juce::Graphics & g )
 {
     g.fillAll( LUFS_COLOR_BACKGROUND );
-
-    juce::Font font( 16.f );
-    font.setBold(true);
-    g.setFont (font);
-    g.setColour( LUFS_COLOR_FONT );
-
-    g.drawFittedText( "Use decimal comma", 20, 20, 210, 20, juce::Justification::centredRight, 1, 0.01f );
-    g.drawFittedText( "Use decimal point", 20, 60, 210, 20, juce::Justification::centredRight, 1, 0.01f );
-    
-    g.drawFittedText( "Export True Peak values", 20, 120, 210, 20, juce::Justification::centredRight, 1, 0.01f );
-    g.drawFittedText( "Dont export True Peak values", 20, 160, 210, 20, juce::Justification::centredRight, 1, 0.01f );
 }
 
 void OptionsComponent::buttonClicked( juce::Button * _button ) 
@@ -117,42 +122,5 @@ void OptionsComponent::buttonClicked( juce::Button * _button )
         if ( window != nullptr )
             window->exitModalState( 51 );
     }
-    else if ( _button == &m_commaButton || _button == &m_pointButton )
-    {
-        m_useCommas = m_commaButton.getToggleState();
-        m_settings.getUserSettings()->setValue( m_useCommasString, m_useCommas ? 1 : 0 );
-    }
-    else if ( _button == &m_exportTruePeakButton || _button == &m_dontExportTruePeakButton )
-    {
-        m_exportTruePeak = m_exportTruePeakButton.getToggleState();
-        m_settings.getUserSettings()->setValue( m_exportTruePeakString, m_exportTruePeak ? 1 : 0 );
-    }
 }
 
-
-
-/*
-Warning colored frame for Momentary value: -8
-Warning colored frame for Short term value: -12
-Warning colored frame for Integrated value: -23
-Warning colored frame and vertical line for True Peak values: -1
-*/
-/*
-//==============================================================================
-class DemoSliderPropertyComponent : public SliderPropertyComponent
-{
-public:
-    DemoSliderPropertyComponent (const String& propertyName)
-        : SliderPropertyComponent (propertyName, 0.0, 100.0, 0.001)
-    {
-        setValue (Random::getSystemRandom().nextDouble() * 42.0);
-    }
-
-    void setValue (double newValue) override
-    {
-        slider.setValue (newValue);
-    }
-
-private:
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DemoSliderPropertyComponent)
-};*/

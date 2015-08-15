@@ -72,12 +72,19 @@ private:
     juce::TextButton m_resetButton;
     juce::TextButton m_pauseButton;
     juce::TextButton m_exportButton;
+    juce::TextButton m_optionsButton;
     juce::TextButton m_aboutButton;
 
     juce::ScopedPointer<juce::ResizableCornerComponent> resizer;
     juce::ComponentBoundsConstrainer resizeLimits;
 
     ChartView m_chart;
+
+    JuceDoubleValue m_momentaryThreshold;
+    JuceDoubleValue m_shortTermThreshold;
+    JuceDoubleValue m_integratedThreshold;
+    JuceDoubleValue m_rangeThreshold;
+    JuceDoubleValue m_truePeakThreshold;
 
     bool m_internallyPaused;
 };

@@ -21,41 +21,30 @@
 
 #pragma once 
 
-#include "FloatComponent.h"
-
-#include "JuceDoubleValue.h"
-
-class TextAndFloatComponent 
-    : public juce::Component
-    , public JuceDoubleValue::Listener
+class JuceDoubleValue 
+    : public juce::Value
+    , private juce::Value::Listener
 {
 public:
 
-    TextAndFloatComponent(const char * name, juce::Colour color, bool invertedWarning);
+    JuceDoubleValue(juce::PropertiesFile * properties, const char * nameInSettings, double defaultValue);
 
-    // juce::Component
-    virtual void paint( juce::Graphics & g ) override;
-    virtual void resized() override;
+    class Listener
+    {
+    public:
+        virtual void juceValueHasChanged(double /*value*/) {}
+    };
 
-    void setVolume( const float volume );
-
-    juce::Value m_settingsThresholdVolume;
+    void addListener(Listener * listener);
+    void removeListener(Listener * listener);
 
 private:
-
-    virtual void juceValueHasChanged(double value) override;
-
-    void setThresholdVolume(float thresholdVolume);
-
-    FloatComponent m_floatComponent;
-
-    void paintFrame( juce::Graphics& g );
-
-    juce::Colour m_color;
-
-    float m_thresholdVolume;
-    bool m_showWarningFrame;
-    bool m_invertedWarning; // true when warning is shown when volume is < than threshold
+    void valueChanged(juce::Value& value);
+    
+    juce::PropertiesFile * m_properties;
+    juce::String m_nameInSettings;
+    double m_doubleValue;
+    juce::Array<Listener*> m_listeners;
 };
 
 

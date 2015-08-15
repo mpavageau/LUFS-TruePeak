@@ -25,7 +25,7 @@
 #include "LufsAudioProcessor.h"
 
 TruePeakComponent::TruePeakComponent( float minChartVolume, float maxChartVolume )
-    : m_valueComponent( "True Peak", COLOR_LUFSTIME )
+    : m_valueComponent( "True Peak", COLOR_LUFSTIME, false )
     , m_processor( nullptr )
     , m_validSize( 0 )
     , m_minChartVolume( minChartVolume )

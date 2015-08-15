@@ -24,8 +24,8 @@
 #include "FloatComponent.h"
 
 FloatComponent::FloatComponent( juce::Colour color )
-    : m_color( color )
-    , m_volumeText( juce::String( DEFAULT_MIN_VOLUME, 1 ) )
+    : m_volumeText( juce::String( DEFAULT_MIN_VOLUME, 1 ) )
+    , m_color( color )
 {
 }
 

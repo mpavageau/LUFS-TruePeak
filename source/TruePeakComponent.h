@@ -43,13 +43,16 @@ public:
     void pause()    { resetVolumeInertia(); }
     void resume()   { resetVolumeInertia(); }
     
+    TextAndFloatComponent * getTextAndFloatComponent() { return &m_valueComponent; }
+
+    TextAndFloatComponent m_valueComponent;
+
 private:
 
     void resetVolumeInertia();
     
     int getVolumeY( const int offsetText, const int height, const float decibels );
 
-    TextAndFloatComponent m_valueComponent;
     LufsAudioProcessor * m_processor;
     struct InertiaStruct
     {
