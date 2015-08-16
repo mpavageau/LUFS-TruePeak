@@ -35,7 +35,7 @@ LufsTruePeakPluginEditor::LufsTruePeakPluginEditor(LufsAudioProcessor* ownerFilt
     , m_momentaryComponent( "Momentary", COLOR_MOMENTARY, false )
     , m_shortTermComponent( "Short Term", COLOR_SHORTTERM, false )
     , m_integratedComponent( "Integrated", COLOR_INTEGRATED, false )
-    , m_rangeComponent( "Range", COLOR_RANGE, true )
+    , m_rangeComponent( "Range", COLOR_RANGE, false )
     , m_truePeakComponent( -42.f, 6.f ) // -18.f 6.f
     , m_chart( -42.f, 0.f )//-8.f )
     , m_internallyPaused( false )
@@ -109,7 +109,7 @@ LufsTruePeakPluginEditor::LufsTruePeakPluginEditor(LufsAudioProcessor* ownerFilt
     m_rangeThreshold.addListener(&m_rangeComponent);
     m_truePeakThreshold.addListener(&m_truePeakComponent.m_valueComponent);
 
-    startTimer( 100 );
+    startTimer( 40 );
 }
 
 LufsTruePeakPluginEditor::~LufsTruePeakPluginEditor()
@@ -235,6 +235,11 @@ void LufsTruePeakPluginEditor::buttonClicked (juce::Button* button)
 
     if ( button == &m_resetButton )
     {
+        m_momentaryComponent.resetWarning();
+        m_shortTermComponent.resetWarning();
+        m_integratedComponent.resetWarning();
+        m_rangeComponent.resetWarning();
+
         m_truePeakComponent.reset();
         processor->m_lufsProcessor.reset();
 

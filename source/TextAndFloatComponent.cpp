@@ -63,40 +63,18 @@ void TextAndFloatComponent::setVolume( const float volume )
 
     if ( m_invertedWarning )
     {
-        if ( m_showWarningFrame )
+        if ( volume < m_thresholdVolume )
         {
-            if ( volume > m_thresholdVolume )
-            {
-                m_showWarningFrame = false;
-                repaint();
-            }
-        }
-        else
-        {
-            if ( volume < m_thresholdVolume )
-            {
-                m_showWarningFrame = true;
-                repaint();
-            }
+            m_showWarningFrame = true;
+            repaint();
         }
     }
     else
     {
-        if ( m_showWarningFrame )
+        if ( volume > m_thresholdVolume )
         {
-            if ( volume < m_thresholdVolume )
-            {
-                m_showWarningFrame = false;
-                repaint();
-            }
-        }
-        else
-        {
-            if ( volume > m_thresholdVolume )
-            {
-                m_showWarningFrame = true;
-                repaint();
-            }
+            m_showWarningFrame = true;
+            repaint();
         }
     }
 }
@@ -126,3 +104,36 @@ void TextAndFloatComponent::juceValueHasChanged(double value)
     setThresholdVolume((float)value); 
 }
 
+void TextAndFloatComponent::resetWarning()
+{
+    if (m_showWarningFrame)
+    {
+        m_showWarningFrame = false;
+        repaint();
+    }
+}
+
+void TextAndFloatComponent::mouseDown (const juce::MouseEvent& /*event*/) 
+{
+    if (m_showWarningFrame)
+    {
+        juce::String text("Reset warning/values for ");
+        text += getName();
+
+        bool result = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::NoIcon,
+            text, 
+            "Reset warning/values?",
+            "Yes",
+            "No");
+
+        if (result)
+            resetWarning();
+    }
+    else
+    {
+        juce::String text("No reset is necessary for warning/values for ");
+        text += getName();
+
+        juce::AlertWindow::showMessageBox(juce::AlertWindow::NoIcon, text, juce::String::empty);
+    }
+}

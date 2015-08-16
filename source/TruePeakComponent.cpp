@@ -180,6 +180,7 @@ void TruePeakComponent::reset()
 {
     m_validSize = 0;
     m_valueComponent.setVolume( DEFAULT_MIN_VOLUME );
+    m_valueComponent.resetWarning();
 
     repaint();
     

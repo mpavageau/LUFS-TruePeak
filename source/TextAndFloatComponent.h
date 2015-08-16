@@ -36,8 +36,11 @@ public:
     // juce::Component
     virtual void paint( juce::Graphics & g ) override;
     virtual void resized() override;
+    virtual void mouseDown (const juce::MouseEvent& event) override;
 
     void setVolume( const float volume );
+
+    void resetWarning();
 
     juce::Value m_settingsThresholdVolume;
 

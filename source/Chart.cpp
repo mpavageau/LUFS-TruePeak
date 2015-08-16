@@ -190,9 +190,10 @@ void Chart::paint(juce::Graphics& g)
     {
         juce::Font pausedFont( 36.f );
         pausedFont.setBold(true);
+        pausedFont.setItalic(true);
         g.setFont( pausedFont );
         
-        g.setColour( juce::Colours::red );
+        g.setColour( LUFS_COLOR_FONT );
         
         g.drawFittedText( "Paused",
                          10, //clipBounds.getX() + clipBounds.getWidth() / 3,
