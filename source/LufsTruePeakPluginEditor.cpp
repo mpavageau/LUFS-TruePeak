@@ -47,6 +47,8 @@ LufsTruePeakPluginEditor::LufsTruePeakPluginEditor(LufsAudioProcessor* ownerFilt
 {
     DEBUGPLUGIN_output("LufsTruePeakPluginEditor::LufsTruePeakPluginEditor ownerFilter 0x%x", ownerFilter);
 
+    juce::LookAndFeel::setDefaultLookAndFeel(&m_customLookAndFeel);
+
     m_timeComponent.setTextColor( COLOR_LUFSTIME );
     addAndMakeVisible( &m_timeComponent );
 

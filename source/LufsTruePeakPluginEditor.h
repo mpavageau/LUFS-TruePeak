@@ -23,6 +23,7 @@
 
 #include "LufsAudioProcessor.h"
 
+#include "CustomLookAndFeel.h"
 #include "TextAndFloatComponent.h"
 #include "TimeComponent.h"
 #include "TruePeakComponent.h"
@@ -59,6 +60,8 @@ public:
 private:
 
     void exportToText( bool useCommasForDigitSeparation, bool exportTruePeak );
+
+    CustomLookAndFeel m_customLookAndFeel;
     
     TimeComponent m_timeComponent;
 
