@@ -66,10 +66,17 @@ public:
     }
 
     //==============================================================================
-    void closeButtonPressed()
+    void closeButtonPressed() override
     {
-        // When the user presses the close button, we'll tell the app to quit. This
-        // MainWindow object will be deleted by the Application class.
+        int res = juce::AlertWindow::showOkCancelBox( juce::AlertWindow::NoIcon,
+            juce::String("Do you really want to quit?"),
+            juce::String::empty, 
+            "yes",
+            "no" );
+
+        if (res != 1)
+            return;
+
         juce::JUCEApplication::quit();
     }
 };
@@ -85,7 +92,7 @@ public:
     Application() {}
 
     //==============================================================================
-    void initialise (const juce::String& commandLine )
+    void initialise (const juce::String& commandLine ) override
     {
 #if defined (LUFS_TRUEPEAK_WINDOWS)
         if ( commandLine.length() )
@@ -111,7 +118,7 @@ public:
         }
     }
 
-    void shutdown()
+    void shutdown() override
     {
         // This method is where you should clear-up your app's resources..
 
@@ -121,24 +128,24 @@ public:
     }
 
     //==============================================================================
-    const juce::String getApplicationName()
+    const juce::String getApplicationName() override
     {
         return "LUFS-TruePeak";
     }
 
-    const juce::String getApplicationVersion()
+    const juce::String getApplicationVersion() override
     {
         // The ProjectInfo::versionString value is automatically updated by the Jucer, and
         // can be found in the JuceHeader.h file that it generates for our project.
         return "Version 0";//ProjectInfo::versionString;
     }
 
-    bool moreThanOneInstanceAllowed()
+    bool moreThanOneInstanceAllowed() override
     {
         return true;
     }
 
-    void anotherInstanceStarted (const juce::String& /*commandLine*/)
+    void anotherInstanceStarted (const juce::String& /*commandLine*/) override
     {
     }
 
