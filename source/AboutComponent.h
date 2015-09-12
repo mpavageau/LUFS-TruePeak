@@ -29,8 +29,8 @@ public:
     virtual ~AboutComponent();
 
     // juce::Component
-    virtual void paint( juce::Graphics & g );
-
+    void paint( juce::Graphics & g ) override;
+    void mouseDown(const juce::MouseEvent& /*event*/) override; 
 };
 
 

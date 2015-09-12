@@ -164,3 +164,8 @@ void AboutComponent::paint( juce::Graphics & g )
     y += ( height + yIndent );
 }
 
+void AboutComponent::mouseDown(const juce::MouseEvent& /*event*/) 
+{
+    juce::URL url("http://www.repetito.com/index.php?page=content_lufs-truepeak");
+    url.launchInDefaultBrowser();
+}
