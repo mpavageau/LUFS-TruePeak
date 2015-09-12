@@ -27,6 +27,7 @@ TextAndFloatComponent::TextAndFloatComponent(const char * name, juce::Colour col
     : juce::Component( name )
     , m_floatComponent( color )
     , m_color( color )
+    , m_valueChangedUpdateObject( nullptr )
     , m_thresholdVolume( 0.f )
     , m_showWarningFrame( false )
     , m_invertedWarning( invertedWarning )
@@ -102,6 +103,9 @@ void TextAndFloatComponent::paintFrame( juce::Graphics& g )
 void TextAndFloatComponent::juceValueHasChanged(double value)
 {
     setThresholdVolume((float)value); 
+
+    if (m_valueChangedUpdateObject)
+        m_valueChangedUpdateObject->valueChangeUpdate();
 }
 
 void TextAndFloatComponent::resetWarning()
@@ -113,27 +117,12 @@ void TextAndFloatComponent::resetWarning()
     }
 }
 
-void TextAndFloatComponent::mouseDown (const juce::MouseEvent& /*event*/) 
+void TextAndFloatComponent::mouseDown(const juce::MouseEvent& event) 
 {
     if (m_showWarningFrame)
     {
-        juce::String text("Reset warning/values for ");
-        text += getName();
-
-        bool result = juce::AlertWindow::showOkCancelBox(juce::AlertWindow::NoIcon,
-            text, 
-            "Reset warning/values?",
-            "Yes",
-            "No");
-
-        if (result)
-            resetWarning();
+        resetWarning();
     }
-    else
-    {
-        juce::String text("No reset is necessary for warning/values for ");
-        text += getName();
 
-        juce::AlertWindow::showMessageBox(juce::AlertWindow::NoIcon, text, juce::String::empty);
-    }
+    juce::Component::mouseDown(event);
 }

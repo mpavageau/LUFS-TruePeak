@@ -42,6 +42,16 @@ int Chart::getVolumeY( const int height, const float decibels )
     return int( ( value - valueMax ) * (float) ( height ) / ( valueMin - valueMax ) );
 }
 
+Chart::Chart( float _minChartVolume, float _maxChartVolume ) 
+    : m_processor( nullptr ) 
+    , m_chartView( nullptr )
+    , m_minChartVolume( _minChartVolume )
+    , m_maxChartVolume( _maxChartVolume )
+    , m_truePeakThreshold( DEFAULT_ACCEPTABLE_MAX_TRUE_PEAK ) 
+    , m_validSize( 0 )
+{
+}
+
 void Chart::update()
 {
     bool cursorIsAtMaxRight = false;
@@ -66,6 +76,10 @@ void Chart::update()
 
 void Chart::paint(juce::Graphics& g)
 {
+    juce::Font lufsFont( 12.f );
+    lufsFont.setBold(true);
+    g.setFont( lufsFont );
+
     juce::Rectangle<int> clipBounds = g.getClipBounds();
 
     const int imageWidth = clipBounds.getWidth();
@@ -77,10 +91,6 @@ void Chart::paint(juce::Graphics& g)
 
     if ( m_validSize && clipBounds.getX() < ( m_validSize - 2 ) )
     {
-        juce::Font lufsFont( 12.f );
-        lufsFont.setBold(true);
-        g.setFont( lufsFont );
-
         int size = imageWidth;
         if ( beginning + size > m_validSize - 2 )
             size = m_validSize - 2 - beginning;
@@ -155,10 +165,13 @@ void Chart::paint(juce::Graphics& g)
     else
     {
         g.setColour( juce::Colours::black );
-        for ( float v = -5.f ; v > -70.f ; v -= 5.f )
+        for ( float v = -3.f ; v > -70.f ; v -= 3.f )
         {
-            int y = getVolumeY( imageHeight, v );
-            g.fillRect( 0, y, imageWidth, 1 );
+            if ( ( v >= m_minChartVolume ) && ( v <= ( m_maxChartVolume ) ) )
+            {
+                int y = getVolumeY( imageHeight, v );
+                g.fillRect( clipBounds.getX(), y, clipBounds.getWidth(), 1 );
+            }
         }
     }
 
@@ -271,12 +284,19 @@ void Chart::paintTruePeakLines( juce::Graphics& g, const float * _data, const in
     for ( int i = _offset ; i < _offset + _pixels - 2 ; ++i )
     {
         const float decibelTruePeak = *_data++;
-        if ( decibelTruePeak >= DEFAULT_ACCEPTABLE_MAX_TRUE_PEAK )
+        if ( decibelTruePeak >= m_truePeakThreshold )
         {
             g.setColour( juce::Colours::red );
             g.fillRect( i, 0, 1, imageHeight ); // drawLine( (float)( i ), 0, (float)( i + 1 ), (float)getVolumeY( imageHeight, vol2 ), 3.f );
         }
     }   
+}
+
+void Chart::setTruePeakThreshold( float truePeakThreshold )
+{
+    m_truePeakThreshold = truePeakThreshold;
+
+    repaint();
 }
 
 

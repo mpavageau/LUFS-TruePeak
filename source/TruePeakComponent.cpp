@@ -22,6 +22,8 @@
 #include "AppIncsAndDefs.h"
 
 #include "TruePeakComponent.h"
+
+#include "Chart.h"
 #include "LufsAudioProcessor.h"
 
 TruePeakComponent::TruePeakComponent( float minChartVolume, float maxChartVolume )
@@ -30,11 +32,10 @@ TruePeakComponent::TruePeakComponent( float minChartVolume, float maxChartVolume
     , m_validSize( 0 )
     , m_minChartVolume( minChartVolume )
     , m_maxChartVolume( maxChartVolume )
+    , m_chart( nullptr )
 {
     addAndMakeVisible( &m_valueComponent );
 
-    m_valueComponent.setBounds( 0, 0, 120, 100 );
-    
     resetVolumeInertia();
     
     // kSpeakerArr51 is "L R C Lfe Ls Rs";
@@ -44,6 +45,8 @@ TruePeakComponent::TruePeakComponent( float minChartVolume, float maxChartVolume
     m_channelNames.add( "Lfe" );
     m_channelNames.add( "Ls" );
     m_channelNames.add( "Rs" );
+
+    m_valueComponent.setValueChangedUpdateObject( this );
 }
 
 void DEBUGoutput( const char * _text, ...)
@@ -73,60 +76,59 @@ void DEBUGoutput( const char * _text, ...)
 void TruePeakComponent::paint( juce::Graphics & g )
 {
     //g.fillAll( juce::Colours::red );
+    //g.drawImage(m_vumeterImage, 0, 0, m_vumeterImage.getWidth(), m_vumeterImage.getHeight(), 0, 0, m_vumeterImage.getWidth(), m_vumeterImage.getHeight());
 
     juce::Font titleFont( 18.f );
     titleFont.setBold(true);
     g.setFont( titleFont );
 
-    const int offsetX = 3;
-    const int width = ( getWidth() - 7 * offsetX ) / 6;
-    const int offsetY = 100;
-    const int height = getHeight() - offsetY - 35;
-    const int offsetText = 21;
-    
-    if ( !m_validSize )
-        return;
-
-    const int currentIndex = m_validSize - 1;
-
     const juce::Colour colorCurrent = COLOR_BACKGROUND_GRAPH;
     const juce::Colour colorMax = juce::Colours::white;
 
-    g.setColour( LUFS_COLOR_BACKGROUND );
-
-    int x = 2 * offsetX;
-    for (int ch = 0 ; ch < LUFS_TP_MAX_NB_CHANNELS ; ++ch )
-    {
-        g.fillRect( x, offsetY, width, height );
-
-        x += offsetX + width;
-    }
-
-    g.setColour( colorCurrent );
+    int x;
+    int valueArrayForY[LUFS_TP_MAX_NB_CHANNELS];
     
-    x = 2 * offsetX;
+    if ( m_validSize )
+    {
+        const int currentIndex = m_validSize - 1;
+
+        for (int ch = 0 ; ch < LUFS_TP_MAX_NB_CHANNELS ; ++ch )
+        {
+            float currentDecibels = m_processor->m_lufsProcessor.getTruePeakChannelArray(ch)[currentIndex];
+            float inertiaVolumeDecibels = m_channelInertiaStruct[ch].getCurrentVolume(currentIndex);
+        
+            float uiVolumeDecibels = inertiaVolumeDecibels;
+        
+            if (currentDecibels > inertiaVolumeDecibels)
+            {
+                uiVolumeDecibels = currentDecibels;
+            
+                //store
+                m_channelInertiaStruct[ch].m_index = currentIndex;
+                m_channelInertiaStruct[ch].m_decibelVolume = currentDecibels;
+            }
+        
+            valueArrayForY[ch] = getVolumeY( uiVolumeDecibels);
+        }
+    }
+    else
+    {
+        for (int ch = 0 ; ch < LUFS_TP_MAX_NB_CHANNELS ; ++ch )
+            valueArrayForY[ch] = m_vumeterHeight;
+    }
+
+    x = 2 * m_vumeterOffsetX;
     for (int ch = 0 ; ch < LUFS_TP_MAX_NB_CHANNELS ; ++ch )
     {
-        float currentDecibels = m_processor->m_lufsProcessor.getTruePeakChannelArray(ch)[currentIndex];
-        float inertiaVolumeDecibels = m_channelInertiaStruct[ch].getCurrentVolume(currentIndex);
-        
-        float uiVolumeDecibels = inertiaVolumeDecibels;
-        
-        if (currentDecibels > inertiaVolumeDecibels)
-        {
-            uiVolumeDecibels = currentDecibels;
-            
-            //store
-            m_channelInertiaStruct[ch].m_index = currentIndex;
-            m_channelInertiaStruct[ch].m_decibelVolume = currentDecibels;
-        }
-        
-        int y = getVolumeY( offsetText, height, uiVolumeDecibels);
-        //DEBUGoutput( "currentIndex %d currentDecibel: %.3f -> y %d", currentIndex, currentDecibel, y);
-        g.fillRect( x, offsetY + y, width, height - y);
+        // use empty image for top
+        g.drawImage(m_vumeterImage, x, m_vumeterOffsetY, (int)(m_vumeterImage.getWidth() / 3.f), valueArrayForY[ch], (int)(0.f * m_vumeterImage.getWidth() / 3.f), 0, (int)(m_vumeterImage.getWidth() / 3.f), valueArrayForY[ch]);
 
-        x += offsetX + width;
+        g.drawImage(m_vumeterImage, x, m_vumeterOffsetY + valueArrayForY[ch], (int)(m_vumeterImage.getWidth() / 3.f), m_vumeterHeight - valueArrayForY[ch], (int)(1.f * m_vumeterImage.getWidth() / 3.f), valueArrayForY[ch], (int)(m_vumeterImage.getWidth() / 3.f), m_vumeterHeight - valueArrayForY[ch]);
+
+        x += m_vumeterOffsetX + m_vumeterWidth;
     }
+
+    g.drawImage(m_vumeterImage, x, m_vumeterOffsetY, (int)(m_vumeterImage.getWidth() / 3.f), m_vumeterImage.getHeight(), (int)(2.f * m_vumeterImage.getWidth() / 3.f), 0, (int)(m_vumeterImage.getWidth() / 3.f), m_vumeterImage.getHeight());
 
     g.setColour( colorMax );
 
@@ -134,32 +136,80 @@ void TruePeakComponent::paint( juce::Graphics & g )
     figureFont.setBold(true);
     g.setFont( figureFont );
     
-    x = 2 * offsetX;
+    x = 2 * m_vumeterOffsetX;
     for (int ch = 0 ; ch < LUFS_TP_MAX_NB_CHANNELS ; ++ch )
     {
         float maxDecibel = m_processor->m_lufsProcessor.getTruePeakChannelMax(ch);
-        int y = getVolumeY( offsetText, height, maxDecibel);
-        g.fillRect( x, offsetY + y, width, 1);
+        int y = getVolumeY( maxDecibel);
+        g.fillRect( x, m_vumeterOffsetY + y, m_vumeterWidth, 1);
         
-        g.fillRect( x, offsetY + height, width, 1);
+        //g.fillRect( x, m_vumeterOffsetY + m_vumeterHeight, m_vumeterWidth, 1);
         
         const juce::String text = maxDecibel > -100.f ? juce::String(maxDecibel, 1) : juce::String((int)maxDecibel);
-        g.drawFittedText( text, x, offsetY + y - 21, width, 20, juce::Justification::centred, 1, 0.01f );
+        g.drawFittedText( text, x, m_vumeterOffsetY + y - 21, m_vumeterWidth, 20, juce::Justification::centred, 1, 0.01f );
         
-        g.drawFittedText( m_channelNames[ch], x, offsetY + height + 3, width, 20, juce::Justification::centred, 1, 0.01f );
+        g.drawFittedText( m_channelNames[ch], x, m_vumeterOffsetY + m_vumeterHeight + 3, m_vumeterWidth, 20, juce::Justification::centred, 1, 0.01f );
         
 
-        x += offsetX + width;
+        x += m_vumeterOffsetX + m_vumeterWidth;
     }
+}
 
-    /*
-    int index = m_validSize - 1;
-    juce::Font font( 14.f );
-    font.setBold(true);
-    g.setFont( font );
+void TruePeakComponent::resized()
+{
+    m_valueComponent.setBounds( 0, 0, getWidth(), 100 );
 
-    juce::String value( m_processor->m_lufsProcessor.getTruePeakArray()[ index ] );
-    g.drawFittedText( value, 10, 60, 120, 20, juce::Justification::centred, 1, 0.01f );*/
+    // create image with vumeter colors and vumeter volume indications 
+    
+    m_vumeterOffsetX = 3;
+    m_vumeterWidth = ( getWidth() - 8 * m_vumeterOffsetX ) / 7;
+    m_vumeterOffsetY = 100;
+    m_vumeterHeight = getHeight() - m_vumeterOffsetY - 35;
+    m_offsetTextForVolumeY = 21;
+    m_heightForVolumeY = m_vumeterHeight; 
+
+    // image has 3 inner images
+    m_vumeterImage = juce::Image(juce::Image::RGB, 3 * m_vumeterWidth, m_vumeterHeight, false);
+
+    juce::Graphics g(m_vumeterImage);
+
+    int y = getVolumeY( m_valueComponent.getThresholdVolume());
+
+    // not active
+    float backgroundInterpolator = 0.7f;
+    g.setColour(juce::Colours::red.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator));
+    g.fillRect(0.f, 0.f, (float)m_vumeterWidth, (float)y);
+    g.setGradientFill(juce::ColourGradient(juce::Colours::yellow.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)y, juce::Colours::green.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)m_vumeterHeight, false));
+    g.fillRect(0.f, (float)y, (float)m_vumeterWidth, (float)(m_vumeterHeight-y));
+
+    // active
+    g.setColour(juce::Colours::red);
+    g.fillRect((float)m_vumeterWidth, 0.f, (float)m_vumeterWidth, (float)y);
+    g.setGradientFill(juce::ColourGradient(juce::Colours::yellow, 0.f, (float)y, juce::Colours::green, 0.f, (float)m_vumeterHeight, false));
+    g.fillRect((float)m_vumeterWidth, (float)y, (float)m_vumeterWidth, (float)(m_vumeterHeight-y));
+
+    // figures
+    juce::Font figureFont( 12.f );
+    figureFont.setBold(true);
+    g.setFont( figureFont );
+    g.setColour(LUFS_COLOR_BACKGROUND);
+    g.fillRect(2.f * (float)m_vumeterWidth, 0.f, (float)m_vumeterWidth, (float)m_vumeterHeight);
+    g.setColour(LUFS_COLOR_FONT);
+    int lastY = -100;
+    for (float decibel = 3.f ; decibel > -80.f ; decibel -= 3.f)
+    {
+        int y = getVolumeY( decibel);
+
+        if (y - lastY > 20)
+        {
+            g.fillRect( 2.f * m_vumeterWidth, (float)y, (float)m_vumeterWidth, (float)1);
+
+            const juce::String text = decibel > 0.f ? juce::String("+") + juce::String((int)decibel) : juce::String((int)decibel);
+            g.drawFittedText( text, (int)(2.f * m_vumeterWidth), y - 18, m_vumeterWidth, 20, juce::Justification::centred, 1, 0.01f );
+
+            lastY = y;
+        }
+    }
 }
 
 void TruePeakComponent::update()
@@ -187,25 +237,25 @@ void TruePeakComponent::reset()
     resetVolumeInertia();
 }
 
-int TruePeakComponent::getVolumeY( const int offsetText, const int height, const float decibels )
+int TruePeakComponent::getVolumeY( const float decibels )
 {
     const float minVolume = m_minChartVolume; // -18.f;
     const float maxVolume = m_maxChartVolume; // 6.f;
 
-    jassert(offsetText < height);
+    jassert(m_offsetTextForVolumeY < m_heightForVolumeY);
     
     if ( decibels > maxVolume )
-        return offsetText;
+        return m_offsetTextForVolumeY;
 
     if ( decibels < minVolume )
-        return height;
+        return m_heightForVolumeY;
     
     const float offset = 12.f; // offset to avoid being too close to 0 in log function
     float value = logf( offset - decibels );
     static const float valueMin = logf( offset - minVolume );
     static const float valueMax = logf( offset - maxVolume );
 
-    return offsetText + int( ( value - valueMax ) * (float) ( height - offsetText ) / ( valueMin - valueMax ) );
+    return m_offsetTextForVolumeY + int( ( value - valueMax ) * (float) ( m_heightForVolumeY - m_offsetTextForVolumeY ) / ( valueMin - valueMax ) );
 }
 
 void TruePeakComponent::resetVolumeInertia()
@@ -219,6 +269,16 @@ void TruePeakComponent::resetVolumeInertia()
 
 float TruePeakComponent::InertiaStruct::getCurrentVolume(int index)
 {
-    float decibels = m_decibelVolume - 5.f * (float)(index - m_index);
+    float decibels = m_decibelVolume - 3.f * (float)(index - m_index);
     return decibels > DEFAULT_MIN_VOLUME ? decibels : DEFAULT_MIN_VOLUME;
+}
+
+void TruePeakComponent::valueChangeUpdate()
+{
+    // force update of m_vumeterImage
+    resized();
+    repaint();
+
+    if (m_chart != nullptr)
+        m_chart->setTruePeakThreshold( m_valueComponent.getThresholdVolume() );
 }

@@ -31,6 +31,13 @@ class TextAndFloatComponent
 {
 public:
 
+    class ValueChangedUpdateObject
+    {
+    public:
+        virtual ~ValueChangedUpdateObject() {};
+        virtual void valueChangeUpdate() = 0;
+    };
+
     TextAndFloatComponent(const char * name, juce::Colour color, bool invertedWarning);
 
     // juce::Component
@@ -44,6 +51,10 @@ public:
 
     juce::Value m_settingsThresholdVolume;
 
+    float getThresholdVolume() const { return m_thresholdVolume; }
+
+    void setValueChangedUpdateObject(ValueChangedUpdateObject * valueChangedUpdateObject) { m_valueChangedUpdateObject = valueChangedUpdateObject; }
+
 private:
 
     virtual void juceValueHasChanged(double value) override;
@@ -55,6 +66,8 @@ private:
     void paintFrame( juce::Graphics& g );
 
     juce::Colour m_color;
+
+    ValueChangedUpdateObject * m_valueChangedUpdateObject;
 
     float m_thresholdVolume;
     bool m_showWarningFrame;

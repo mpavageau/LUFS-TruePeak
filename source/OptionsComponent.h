@@ -34,7 +34,8 @@ public:
         juce::Value & shortTermThreshold,
         juce::Value & integratedThreshold,
         juce::Value & rangeThreshold,
-        juce::Value & truePeakThreshold );
+        juce::Value & truePeakThreshold,
+        juce::Value & uiUpdateRefreshRateHz );
 
     virtual ~OptionsComponent();
 

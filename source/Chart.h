@@ -27,12 +27,7 @@ class ChartView;
 class Chart : public juce::Component
 {
 public:
-    Chart( float _minChartVolume, float _maxChartVolume ) 
-        : m_processor( nullptr ) 
-        , m_chartView( nullptr )
-        , m_minChartVolume( _minChartVolume )
-        , m_maxChartVolume( _maxChartVolume )
-    {}
+    Chart( float _minChartVolume, float _maxChartVolume );
 
     void update();
 
@@ -47,6 +42,8 @@ public:
     float getMinChartVolume() const { return m_minChartVolume; }
     float getMaxChartVolume() const { return m_maxChartVolume; }
 
+    void setTruePeakThreshold( float truePeakThreshold );
+
 private:
 
     void paintValues( juce::Graphics& g, const juce::Colour _color, const float * _data, const int _itemsPerPixel, const int _offset, const int _pixels );
@@ -56,6 +53,7 @@ private:
     ChartView * m_chartView;
     float m_minChartVolume;
     float m_maxChartVolume;
+    float m_truePeakThreshold;
     int m_validSize;
 };
 
@@ -77,7 +75,7 @@ public:
 
     void update();
 
-private:
+    void setTruePeakThreshold( float truePeakThreshold ) { m_chart.setTruePeakThreshold( truePeakThreshold ); }
 
     Chart m_chart;
 };

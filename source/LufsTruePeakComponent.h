@@ -62,6 +62,9 @@ private:
     juce::StringArray m_inputChannelNames;
 
     juce::String m_audioConfigString;
+    juce::String m_inputPatchString;
+    juce::BigInteger m_inputPatch;
+    int m_patch[6];
     
     bool m_hostAppContext; // should be false when component is used in a plug
 };

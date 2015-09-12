@@ -68,6 +68,7 @@ public:
     //==============================================================================
     void closeButtonPressed() override
     {
+#ifndef DEBUG
         int res = juce::AlertWindow::showOkCancelBox( juce::AlertWindow::NoIcon,
             juce::String("Do you really want to quit?"),
             juce::String::empty, 
@@ -76,6 +77,7 @@ public:
 
         if (res != 1)
             return;
+#endif
 
         juce::JUCEApplication::quit();
     }

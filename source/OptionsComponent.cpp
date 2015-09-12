@@ -65,17 +65,18 @@ OptionsComponent::OptionsComponent( juce::ApplicationProperties & settings,
         juce::Value & shortTermThreshold,
         juce::Value & integratedThreshold,
         juce::Value & rangeThreshold,
-        juce::Value & truePeakThreshold )
+        juce::Value & truePeakThreshold,
+        juce::Value & uiUpdateRefreshRateHz )
     : m_settings( settings )
 {
-    setSize( 1100, 250 );
+    setSize( 1100, 300 );
     
     m_okButton.setButtonText( juce::String( "OK" ) );
     m_okButton.setColour( juce::TextButton::buttonColourId, LUFS_COLOR_BACKGROUND );
     m_okButton.setColour( juce::TextButton::buttonOnColourId, LUFS_COLOR_FONT );
     m_okButton.setColour( juce::TextButton::textColourOffId, LUFS_COLOR_FONT );
     m_okButton.setColour( juce::TextButton::textColourOnId, LUFS_COLOR_BACKGROUND );
-    m_okButton.setBounds( 600, 175, 100, 50 );
+    m_okButton.setBounds( 600, 215, 100, 50 );
     addAndMakeVisible( &m_okButton );
     m_okButton.addListener( this );
     m_okButton.setWantsKeyboardFocus(true); // doesn't get focus :(
@@ -97,11 +98,20 @@ OptionsComponent::OptionsComponent( juce::ApplicationProperties & settings,
     SliderComponent * truePeakComponent = new SliderComponent(truePeakThreshold, "Threshold for True Peak values (colored frame and red vertical lines)", -10.f, 10.f);
     truePeakComponents.add(truePeakComponent);
 
-    addAndMakeVisible(m_propertyPanel);
-    m_propertyPanel.addSection("Define the threshold volumes for each volume value", truePeakComponents);
+    m_propertyPanel.addSection("Threshold volumes for each volume value", truePeakComponents);
+
+
+    juce::Array<juce::PropertyComponent*> uiComponents;
+
+    SliderComponent * refreshRateHz = new SliderComponent(uiUpdateRefreshRateHz, "UI refresh rate (Hz)", 2.f, 100.f);
+    uiComponents.add(refreshRateHz);
+
+    m_propertyPanel.addSection("UI refresh rate", uiComponents);
+
 
     const int offset = 4;
-    m_propertyPanel.setBounds(offset, offset, getWidth() - 2 * offset, 175);
+    addAndMakeVisible(m_propertyPanel);
+    m_propertyPanel.setBounds(offset, offset, getWidth() - 2 * offset, 200);
 }
 
 OptionsComponent::~OptionsComponent()

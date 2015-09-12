@@ -30,7 +30,7 @@ ExportSettingsComponent::ExportSettingsComponent( juce::ApplicationProperties & 
     , m_useCommas( true )
     , m_exportTruePeak( false )
 {
-    setSize( 500, 200 );
+    setSize( 700, 200 );
 
     m_okButton.setButtonText( juce::String( "OK" ) );
     m_okButton.addListener( this );

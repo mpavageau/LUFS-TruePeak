@@ -36,14 +36,15 @@ LufsTruePeakPluginEditor::LufsTruePeakPluginEditor(LufsAudioProcessor* ownerFilt
     , m_shortTermComponent( "Short Term", COLOR_SHORTTERM, false )
     , m_integratedComponent( "Integrated", COLOR_INTEGRATED, false )
     , m_rangeComponent( "Range", COLOR_RANGE, false )
-    , m_truePeakComponent( -42.f, 6.f ) // -18.f 6.f
+    , m_truePeakComponent( -80.f, 4.f ) // -18.f 6.f
     , m_chart( -42.f, 0.f )//-8.f )
     , m_internallyPaused( false )
     , m_momentaryThreshold( getProcessor()->m_settings.getUserSettings(), "MomentaryThreshold", -8.f)
     , m_shortTermThreshold( getProcessor()->m_settings.getUserSettings(), "ShortTermThreshold", -15.f)
     , m_integratedThreshold( getProcessor()->m_settings.getUserSettings(), "IntegratedThreshold", -23.f)
-    , m_rangeThreshold( getProcessor()->m_settings.getUserSettings(), "RangeThreshold", 10.f)
+    , m_rangeThreshold( getProcessor()->m_settings.getUserSettings(), "RangeThreshold", 15.f)
     , m_truePeakThreshold( getProcessor()->m_settings.getUserSettings(), "TruePeakThreshold", -1.f)
+    , m_uiUpdateRefreshRateHz( getProcessor()->m_settings.getUserSettings(), "UIUpdateRefreshRateHz", 50.f)
 {
     DEBUGPLUGIN_output("LufsTruePeakPluginEditor::LufsTruePeakPluginEditor ownerFilter 0x%x", ownerFilter);
 
@@ -111,7 +112,11 @@ LufsTruePeakPluginEditor::LufsTruePeakPluginEditor(LufsAudioProcessor* ownerFilt
     m_rangeThreshold.addListener(&m_rangeComponent);
     m_truePeakThreshold.addListener(&m_truePeakComponent.m_valueComponent);
 
-    startTimer( 40 );
+    m_uiUpdateRefreshRateHz.addListener(this);
+
+    m_truePeakComponent.setChart( &m_chart.m_chart );
+
+//    startTimer( m_uiUpdateRefreshRateHz.ge );
 }
 
 LufsTruePeakPluginEditor::~LufsTruePeakPluginEditor()
@@ -144,7 +149,7 @@ void LufsTruePeakPluginEditor::resized()
 
     int x = 10;
     const int width = 120;
-    const int truePeakWidth = 120;
+    const int truePeakWidth = 160;
     m_timeComponent.setBounds( x, 48, width, 40 );
     x += width;
     m_momentaryComponent.setBounds( x, 0, width, 100 );
@@ -278,7 +283,7 @@ void LufsTruePeakPluginEditor::buttonClicked (juce::Button* button)
         m_internallyPaused = true;
 
         ExportSettingsComponent component( getProcessor()->m_settings );
-        int result = juce::DialogWindow::showModalDialog( "Export volume figures to text file", &component, this, LUFS_COLOR_BACKGROUND, true, false, false );
+        int result = juce::DialogWindow::showModalDialog( "Export volumes to text file (to use in your favorite spreadsheet)", &component, this, LUFS_COLOR_BACKGROUND, true, false, false );
 
         if ( result )
             exportToText( component.useCommas(), component.exportTruePeak() );
@@ -296,7 +301,7 @@ void LufsTruePeakPluginEditor::buttonClicked (juce::Button* button)
     {
         OptionsComponent component( getProcessor()->m_settings, 
             m_momentaryThreshold, m_shortTermThreshold, m_integratedThreshold, 
-            m_rangeThreshold, m_truePeakThreshold);
+            m_rangeThreshold, m_truePeakThreshold, m_uiUpdateRefreshRateHz);
 
         juce::String about( "Options: threshold volumes for warnings" );
         juce::DialogWindow::showModalDialog( about, &component, this, juce::Colours::grey/*LUFS_COLOR_BACKGROUND*/, true, false, false );
@@ -417,5 +422,13 @@ void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation, b
         }
 
         outputStream.writeText( text, false, false );
+    }
+}
+
+void LufsTruePeakPluginEditor::juceValueHasChanged(double value) 
+{
+    if (value > 0.05 && value < 100)
+    {
+        startTimer( (int)(1000.0 / value) );
     }
 }

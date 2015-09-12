@@ -38,7 +38,7 @@ class LufsTruePeakPluginEditor
     : public juce::AudioProcessorEditor
     , public juce::Timer
     , public juce::Button::Listener
-
+    , public JuceDoubleValue::Listener
 {
 public:
     LufsTruePeakPluginEditor (LufsAudioProcessor* ownerFilter);
@@ -50,7 +50,10 @@ public:
     void resized();
 
     // Button::Listener 
-    virtual void buttonClicked (juce::Button* button);
+    void buttonClicked (juce::Button* button) override;
+
+    // JuceDoubleValue::Listener 
+    void juceValueHasChanged(double value) override;
 
     LufsAudioProcessor* getProcessor() const
     {
@@ -88,6 +91,8 @@ private:
     JuceDoubleValue m_integratedThreshold;
     JuceDoubleValue m_rangeThreshold;
     JuceDoubleValue m_truePeakThreshold;
+
+    JuceDoubleValue m_uiUpdateRefreshRateHz;
 
     bool m_internallyPaused;
 };
