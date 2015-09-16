@@ -137,12 +137,12 @@ const juce::String LufsAudioProcessor::getInputChannelName (const int channelInd
     switch( channelIndex )
     {
         // VST kSpeakerArr51 is L R C Lfe Ls Rs  
-    case 0: return "L";
-    case 1: return "R";
-    case 2: return "C";
-    case 3: return "Lfe";
-    case 4: return "Ls";
-    case 5: return "Rs";
+    case 0: return "Left";
+    case 1: return "Right";
+    case 2: return "Center";
+    case 3: return "Low frequency effects";
+    case 4: return "Left surround (rear left)";
+    case 5: return "Right surround (rear right)";
     }
     return juce::String (channelIndex + 1);
 }

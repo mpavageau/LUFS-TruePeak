@@ -219,8 +219,8 @@ void LufsProcessor::processBlock( juce::AudioSampleBuffer& buffer )
             case 3: // Lfe
                 weightingCoef = 0.f;
                 break;
-            case 4: // R
-            case 5: // C
+            case 4: // Ls
+            case 5: // Rs
                 weightingCoef = 1.414213f; // 1.41 (~ +1.5 dB) for left and right surround channels 
                 break;
             }

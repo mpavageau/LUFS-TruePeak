@@ -23,15 +23,10 @@
 
 #include "LufsTruePeakComponent.h"
 
-//#define TEST_AUDIODEVICECOMPONENT
-#ifdef TEST_AUDIODEVICECOMPONENT
-#include "AudioDeviceComponent.h"
-#endif TEST_AUDIODEVICECOMPONENT
-
+#include "AudioDeviceSelectorComponent.h"
 #include "LufsTruePeakPluginEditor.h"
 
 const int lufsYPos = 40;
-
 
 LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
     : m_audioConfigString( "AudioConfiguration" )
@@ -39,30 +34,38 @@ LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
     , m_hostAppContext( _hostAppContext )
  {
     const juce::XmlElement * audioConfiguration = m_processor.m_settings.getUserSettings()->getXmlValue( m_audioConfigString );
+
+    const char * names[] = 
+    {
+        "Left", "Right", "Center", "Low frequency effects", "Left surround (rear left)",
+        "Right surround (rear right)" 
+    };
+    juce::StringArray columnNames(names, 6);
+    m_patch.setColumnNames(columnNames);
     
-    m_audioDevice.initialise( 6, 2/*0 messes up with ASIO in juce*/, audioConfiguration, false, juce::String::empty, 0 );
-
-    // temp 
-    for (int i = 0 ; i < 6 ; ++i)
-        m_patch[i] = i;
-
+    juce::AudioDeviceManager::AudioDeviceSetup config;
     if (audioConfiguration != nullptr)
     {
-        const juce::XmlElement * patch = audioConfiguration->getChildByName( m_inputPatchString );
+        const juce::XmlElement * patch = audioConfiguration->getChildByName(m_inputPatchString);
+
         if (patch != nullptr)
         {
-            m_inputPatch.parseString(patch->getStringAttribute("Value", "0"), 2);
-/*
-            int input = 0;
-            for (int i = 0 ; i < m_inputPatch.getHighestBit() ; ++i)
-            {
-                if (m_inputPatch[i])
-            }*/
+            m_patch.initFromXml(patch);
+
+            juce::String deviceType = audioConfiguration->getStringAttribute("deviceType", "");
+            juce::String deviceName = audioConfiguration->getStringAttribute("audioOutputDeviceName", "");
+            if ( deviceName.isEmpty() )
+                deviceName = audioConfiguration->getStringAttribute("audioInputDeviceName", "");
+
+            config.inputChannels = m_patch.getActiveLines(deviceType, deviceName);
         }
     }
+
+    m_deviceManager.initialise(6, 2/*0 messes up with ASIO in juce*/, audioConfiguration, false, juce::String::empty, &config);
+
     delete audioConfiguration;
 
-    m_audioDevice.addAudioCallback( this );
+    m_deviceManager.addAudioCallback( this );
 
     juce::Component * lufsEditor = m_processor.createEditorIfNeeded();
     addAndMakeVisible( lufsEditor );
@@ -78,7 +81,7 @@ LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
     const int buttonHeight = 30;
     addAndMakeVisible( &m_audioDeviceButton );
     m_audioDeviceButton.setBounds( offsetX, offsetY, buttonWidth, buttonHeight );
-    m_audioDeviceButton.setButtonText( "Select the Audio Device");
+    m_audioDeviceButton.setButtonText( "Configure Audio Inputs");
     m_audioDeviceButton.setColour( juce::TextButton::buttonColourId, LUFS_COLOR_BACKGROUND );
     m_audioDeviceButton.setColour( juce::TextButton::buttonOnColourId, LUFS_COLOR_FONT );
     m_audioDeviceButton.setColour( juce::TextButton::textColourOffId, LUFS_COLOR_FONT );
@@ -91,13 +94,12 @@ LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
     m_audioDeviceSettingsLabel.setColour( juce::Label::textColourId, LUFS_COLOR_FONT );
 
     updateAudioDeviceName();
-
-    const char * inputChannelNames[] = { "Left", "Right", "Center", "Low Freq Effects", "Left Surround", "Right Surround" };
-    m_inputChannelNames = juce::StringArray( inputChannelNames, 6 );
 }
 
 LufsTruePeakComponent::~LufsTruePeakComponent()
 {
+    m_deviceManager.removeAudioCallback( this );
+
     juce::AudioProcessorEditor * lufsEditor = m_processor.getActiveEditor();
 
     if ( lufsEditor )
@@ -110,7 +112,13 @@ LufsTruePeakComponent::~LufsTruePeakComponent()
 
     juce::Thread::sleep( 100 );
 
-    const juce::XmlElement * audioConfiguration = m_audioDevice.createStateXml();
+    juce::XmlElement * audioConfiguration = m_deviceManager.createStateXml();
+
+    // add patch
+    juce::XmlElement * inputPatch = m_patch.createStateXml(m_inputPatchString);
+    if (inputPatch != nullptr)
+        audioConfiguration->addChildElement(inputPatch);
+
     m_processor.m_settings.getUserSettings()->setValue( m_audioConfigString, audioConfiguration );
     delete audioConfiguration;
 }
@@ -126,11 +134,11 @@ void LufsTruePeakComponent::paint( juce::Graphics & /*g*/ )
 
 void LufsTruePeakComponent::updateAudioDeviceName()
 {
-    if ( m_audioDevice.getCurrentAudioDevice() )
+    if ( m_deviceManager.getCurrentAudioDevice() )
     {
-        juce::String text = m_audioDevice.getCurrentAudioDevice()->getName();
+        juce::String text = m_deviceManager.getCurrentAudioDevice()->getName();
         text += juce::String( " using " );
-        text += m_audioDevice.getCurrentAudioDeviceType();
+        text += m_deviceManager.getCurrentAudioDeviceType();
         text += juce::String( " drivers" );
         m_audioDeviceSettingsLabel.setText( text, juce::dontSendNotification );
     }
@@ -142,48 +150,36 @@ void LufsTruePeakComponent::updateAudioDeviceName()
 
 void LufsTruePeakComponent::buttonClicked( juce::Button* )
 {
-//    const bool wasPaused = m_processor.m_lufsProcessor.isPaused();
-//     if ( !wasPaused )
-//         m_processor.m_lufsProcessor.pause();
+    AudioDeviceSelectorComponent component(m_deviceManager, m_patch);
 
-#ifdef TEST_AUDIODEVICECOMPONENT
-
-    AudioDeviceSelectorComponent component(m_audioDevice);
-
-#else
-
-    juce::AudioDeviceSelectorComponent component( m_audioDevice, 
-        LUFS_TP_MAX_NB_CHANNELS, LUFS_TP_MAX_NB_CHANNELS, 
-        LUFS_TP_MAX_NB_CHANNELS, LUFS_TP_MAX_NB_CHANNELS, 
-        false, false, false, false );
-
-#endif
-
-    component.setSize( 600, 600 );
-    juce::String selectAudioDevice("Select the Audio Device (channels order is L R C Lfe Ls Rs)");
+    component.setSize( 700, 600 );
+    juce::String selectAudioDevice("Configure Audio Inputs");
 
     juce::DialogWindow::showModalDialog(selectAudioDevice, &component, this, LUFS_COLOR_BACKGROUND, true, true, true);
 
     updateAudioDeviceName();
-
-//     if ( !wasPaused )
-//         m_processor.m_lufsProcessor.resume();
 }
 
-void LufsTruePeakComponent::audioDeviceIOCallback( const float** inputChannelData, int numInputChannels, float** /*outputChannelData*/, int /*numOutputChannels*/, int numSamples)
+void LufsTruePeakComponent::audioDeviceIOCallback( const float** inputChannelData, int /*numInputChannels*/, float** outputChannelData, int numOutputChannels, int numSamples)
 {
-    float const * floatArray[ 6 ] = { 0 };
-    const int nbChannels = juce::jmin( 6, numInputChannels );
-    for ( int i = 0 ; i < nbChannels; ++i )
-        floatArray[ i ] = inputChannelData[ m_patch[i] ];
-    juce::AudioSampleBuffer buffer( (float* const*) floatArray, nbChannels, numSamples );
+    juce::AudioSampleBuffer buffer = m_patch.getBuffer( (float**)inputChannelData, numSamples );
 
     juce::MidiBuffer emptyMidiBuffer;
     m_processor.processBlock( buffer, emptyMidiBuffer );
+
+     // zero outputs
+    for (int i = 0 ; i < numOutputChannels ; ++i)
+        memset(outputChannelData[i], 0, numSamples * sizeof(float));
 }
 
 void LufsTruePeakComponent::audioDeviceAboutToStart( juce::AudioIODevice* device )
 {
+juce::String text("LufsTruePeakComponent::audioDeviceAboutToStart getActiveInputChannels ");
+text += device->getActiveInputChannels().toString(2);
+DBG(text);
+
+    m_patch.audioDeviceAboutToStart( device );
+
     m_processor.prepareToPlay( device->getCurrentSampleRate(), device->getCurrentBufferSizeSamples() );
 }
 

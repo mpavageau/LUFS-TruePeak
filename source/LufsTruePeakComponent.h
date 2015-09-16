@@ -21,7 +21,9 @@
 
 #pragma once
 
+#include "AudioDeviceManager.h"
 #include "LufsAudioProcessor.h"
+#include "Patch.h"
 
 class LufsTruePeakComponent 
     : public juce::Component
@@ -55,16 +57,16 @@ private:
     LufsAudioProcessor m_processor;
 
     // audio manager
-    juce::AudioDeviceManager m_audioDevice;
+    AudioDeviceManager m_deviceManager;
     juce::Label m_audioDeviceSettingsLabel;
     juce::TextButton m_audioDeviceButton;
 
     juce::StringArray m_inputChannelNames;
 
+    Patch m_patch;
+
     juce::String m_audioConfigString;
     juce::String m_inputPatchString;
-    juce::BigInteger m_inputPatch;
-    int m_patch[6];
     
     bool m_hostAppContext; // should be false when component is used in a plug
 };
