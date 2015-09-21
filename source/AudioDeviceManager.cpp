@@ -35,7 +35,7 @@ AudioDeviceManager::~AudioDeviceManager()
 {
 }
 
-juce::String AudioDeviceManager::initialise (int numInputChannelsNeeded,
+juce::String AudioDeviceManager::initialise(int numInputChannelsNeeded,
                          int numOutputChannelsNeeded,
                          const juce::XmlElement* savedState,
                          bool selectDefaultDeviceOnFailure,
@@ -68,14 +68,12 @@ juce::String AudioDeviceManager::setAudioDeviceSetup(const juce::AudioDeviceMana
     if (!m_opened)
         return "AudioDeviceManager not yet opened";
 
-    juce::XmlElement * xml = m_deviceManager.createStateXml();
-
     m_deviceManager.closeAudioDevice();
 
-    juce::String ret = m_deviceManager.initialise(m_numInputChannelsNeeded, m_numOutputChannelsNeeded, xml,
+    juce::String ret = m_deviceManager.initialise(m_numInputChannelsNeeded, m_numOutputChannelsNeeded, nullptr/*xml*/,
         m_selectDefaultDeviceOnFailure, m_preferredDefaultDeviceName, &newSetup);
 
-    delete xml;
+    m_deviceManager.setAudioDeviceSetup(newSetup, true);
 
     return ret;
 }

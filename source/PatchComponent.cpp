@@ -166,8 +166,17 @@ void PatchComponent::buttonClicked(juce::Button * button)
                 if ( m_patch.getState(column, line) )
                 {
                     // uncheck
-                    button->setToggleState(false, juce::dontSendNotification);
+                    m_buttonArray[m_patch.getIndex(column, line)]->setToggleState(false, juce::dontSendNotification);
                     m_patch.setState(column, line, false);
+
+                    // notify
+                    juce::BigInteger activeLines = m_patch.getActiveLines();
+                    juce::BigInteger activeColumns = m_patch.getActiveColumns();
+
+                    for (int i = 0 ; i < m_listeners.size() ; ++i)
+                    {
+                        m_listeners[i]->patchHasChanged(this, activeLines, activeColumns);
+                    }
                 }
 
                 foundIt = true;
@@ -178,15 +187,6 @@ void PatchComponent::buttonClicked(juce::Button * button)
             if (foundIt)
                 break;
         }
-    }
-
-    // notify
-    juce::BigInteger activeLines = m_patch.getActiveLines();
-    juce::BigInteger activeColumns = m_patch.getActiveColumns();
-
-    for (int i = 0 ; i < m_listeners.size() ; ++i)
-    {
-        m_listeners[i]->patchHasChanged(this, activeLines, activeColumns);
     }
 }
 
@@ -228,11 +228,13 @@ void PatchComponent::buttonStateChanged(juce::Button * button)
             {
                 PatchButton * button = m_buttonArray[m_patch.getIndex(column, buttonLine)];
 
-                // uncheck
-                button->setToggleState(false, juce::dontSendNotification);
-                
+                // uncheck if necessary 
                 if (m_patch.getState(column, buttonLine))
+                {
+                    button->setToggleState(false, juce::sendNotification);
+                
                     m_patch.setState(column, buttonLine, false);
+                }
             }
         }
     }

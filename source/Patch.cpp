@@ -155,19 +155,15 @@ const juce::AudioSampleBuffer Patch::getBuffer(float ** channelData, int sampleC
         m_buffer.setSize(1, 16 * sampleCount, false, true);
     }
 
-    int inputChannel = 0;
     for (int i = 0 ; i < m_arraySize ; ++i)
     {
-        if (m_patchArray[i] >= 0 && inputChannel < m_inputChannelCount)
+        if (m_patchArray[i] >= 0 && m_patchArray[i] < m_inputChannelCount)
         {
-            //jassert(inputChannel < m_inputChannelCount); ... can be less with DirectSound strange situations :( added safety test below
-            m_floatArray[i] = channelData[inputChannel];
+            m_floatArray[i] = channelData[m_patchArray[i]];
 
             // safety
             if (m_floatArray[i] == nullptr)
                 m_floatArray[i] = m_buffer.getArrayOfWritePointers()[0];
-
-            ++inputChannel;
         }
         else
         {
