@@ -71,6 +71,12 @@ private:
     juce::ComboBox m_audioDeviceCombo;
     juce::Label m_audioDeviceLabel;
 
+    juce::ComboBox m_samplingRatesCombo;
+    juce::Label m_samplingRatesLabel;
+
+    juce::ComboBox m_bufferSizesCombo;
+    juce::Label m_bufferSizesLabel;
+
     PatchView m_patchView;
 };
 

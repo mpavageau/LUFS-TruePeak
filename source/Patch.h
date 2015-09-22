@@ -58,7 +58,9 @@ private:
 
     juce::String generateDeviceTagName(const juce::String & deviceType, const juce::String & deviceName) const;
 
-    const juce::BigInteger getDevicePatch(const juce::String & deviceTagName) const;
+    const juce::BigInteger getDevicePatch(const juce::String & deviceTagName) const; // gets device patch associated with deviceTagName
+
+    const juce::BigInteger getValidDevicePatch(const juce::String & deviceType, const juce::String & deviceName, int columnCount); // gets device patch and checks that it complies with columnCount
 
     juce::String m_deviceTagName;
     juce::NamedValueSet m_devicePatches;

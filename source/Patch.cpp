@@ -94,7 +94,7 @@ void Patch::audioDeviceAboutToStart(juce::AudioIODevice* device)
     else
     {
         // get patch
-        m_patch = getDevicePatch(deviceTagName);
+        m_patch = getValidDevicePatch(device->getTypeName(), device->getName(), device->getInputChannelNames().size());
 
         m_deviceTagName = deviceTagName;
     }
@@ -199,6 +199,24 @@ const juce::BigInteger Patch::getDevicePatch(const juce::String & deviceTagName)
 
     juce::BigInteger patch;
     patch.parseString(stringValue, 2);
+
+    return patch;
+}
+
+const juce::BigInteger Patch::getValidDevicePatch(const juce::String & deviceType, const juce::String & deviceName, int lineCount) 
+{
+    juce::BigInteger patch = getDevicePatch(generateDeviceTagName(deviceType, deviceName));
+
+    int highestBit = patch.getHighestBit();
+    juce::String t = patch.toString(2);
+    DBG(t);
+    int columnCount = m_columnNames.size();
+    if (highestBit >= columnCount * lineCount)
+    {
+        // reset patch
+        patch = 0;
+        m_devicePatches.set(generateDeviceTagName(deviceType, deviceName), "0");
+    }
 
     return patch;
 }

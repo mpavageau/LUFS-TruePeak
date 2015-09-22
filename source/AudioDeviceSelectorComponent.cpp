@@ -31,17 +31,27 @@ AudioDeviceSelectorComponent::AudioDeviceSelectorComponent(AudioDeviceManager & 
 {
     m_patchView.m_patchComponent.redraw();
 
-    // colors
+    // colors for combo
     m_audioTypeCombo.setColour(juce::ComboBox::backgroundColourId, LUFS_COLOR_BACKGROUND);
     m_audioTypeCombo.setColour(juce::ComboBox::textColourId, LUFS_COLOR_FONT);
     m_audioDeviceCombo.setColour(juce::ComboBox::backgroundColourId, LUFS_COLOR_BACKGROUND);
     m_audioDeviceCombo.setColour(juce::ComboBox::textColourId, LUFS_COLOR_FONT);
+    m_samplingRatesCombo.setColour(juce::ComboBox::backgroundColourId, LUFS_COLOR_BACKGROUND);
+    m_samplingRatesCombo.setColour(juce::ComboBox::textColourId, LUFS_COLOR_FONT);
+    m_bufferSizesCombo.setColour(juce::ComboBox::backgroundColourId, LUFS_COLOR_BACKGROUND);
+    m_bufferSizesCombo.setColour(juce::ComboBox::textColourId, LUFS_COLOR_FONT);
 
+    // colors for labels
     m_audioTypeLabel.setColour(juce::Label::backgroundColourId, LUFS_COLOR_BACKGROUND);
     m_audioTypeLabel.setColour(juce::Label::textColourId, LUFS_COLOR_FONT);
     m_audioDeviceLabel.setColour(juce::Label::backgroundColourId, LUFS_COLOR_BACKGROUND);
     m_audioDeviceLabel.setColour(juce::Label::textColourId, LUFS_COLOR_FONT);
+    m_samplingRatesLabel.setColour(juce::Label::backgroundColourId, LUFS_COLOR_BACKGROUND);
+    m_samplingRatesLabel.setColour(juce::Label::textColourId, LUFS_COLOR_FONT);
+    m_bufferSizesLabel.setColour(juce::Label::backgroundColourId, LUFS_COLOR_BACKGROUND);
+    m_bufferSizesLabel.setColour(juce::Label::textColourId, LUFS_COLOR_FONT);
 
+    // audio device type
     const juce::OwnedArray<juce::AudioIODeviceType> & types = deviceManager.getAvailableDeviceTypes();
 
     for (int i = 0; i < types.size(); ++i)
@@ -66,12 +76,30 @@ AudioDeviceSelectorComponent::AudioDeviceSelectorComponent(AudioDeviceManager & 
         }
     }
 
+    // audio device name
     addAndMakeVisible(&m_audioDeviceCombo);
     m_audioDeviceCombo.addListener (this);
 
     addAndMakeVisible(&m_audioDeviceLabel);
     m_audioDeviceLabel.setText("Audio device", juce::NotificationType::dontSendNotification);
     m_audioDeviceLabel.setJustificationType(juce::Justification::centredRight);
+
+    // sampling rates
+    addAndMakeVisible(&m_samplingRatesCombo);
+    m_samplingRatesCombo.addListener (this);
+
+    addAndMakeVisible(&m_samplingRatesLabel);
+    m_samplingRatesLabel.setText("Sampling rate", juce::NotificationType::dontSendNotification);
+    m_samplingRatesLabel.setJustificationType(juce::Justification::centredRight);
+
+    // buffer sizes
+    addAndMakeVisible(&m_bufferSizesCombo);
+    m_bufferSizesCombo.addListener (this);
+
+    addAndMakeVisible(&m_bufferSizesLabel);
+    m_bufferSizesLabel.setText("Buffer size", juce::NotificationType::dontSendNotification);
+    m_bufferSizesLabel.setJustificationType(juce::Justification::centredRight);
+
 
     m_deviceManager.addChangeListener(this);
 
@@ -87,6 +115,8 @@ AudioDeviceSelectorComponent::~AudioDeviceSelectorComponent()
 
 void AudioDeviceSelectorComponent::paint(juce::Graphics & g)
 {
+    //g.fillAll(juce::Colours::red);
+
     if (!m_audioTypeCombo.getNumItems())
     {
         g.setColour(juce::Colours::red);
@@ -110,7 +140,7 @@ void AudioDeviceSelectorComponent::resized()
     const int rightOffsetX = 2 * leftOffsetX + leftWidth;
     const int rightWidth = getWidth() - rightOffsetX - leftOffsetX;
 
-    int y = 50 + offsetY;
+    int y = offsetY;
 
     if (m_audioTypeCombo.getNumItems() > 1)
     {
@@ -123,14 +153,28 @@ void AudioDeviceSelectorComponent::resized()
     m_audioDeviceLabel.setBounds(leftOffsetX, y, leftWidth, height);
     m_audioDeviceCombo.setBounds(rightOffsetX, y, rightWidth, height);
 
-
     y += height + offsetY;
     
+    m_samplingRatesLabel.setBounds(leftOffsetX, y, leftWidth, height);
+    m_samplingRatesCombo.setBounds(rightOffsetX, y, rightWidth, height);
+
+    y += height + offsetY;
+
+    m_bufferSizesLabel.setBounds(leftOffsetX, y, leftWidth, height);
+    m_bufferSizesCombo.setBounds(rightOffsetX, y, rightWidth, height);
+
+    y += height + offsetY;
+
     m_patchView.setBounds(leftOffsetX, y, getWidth() - 2 * leftOffsetX, getHeight() - offsetY - y);
 }
 
 void AudioDeviceSelectorComponent::comboBoxChanged(juce::ComboBox * comboBoxThatHasChanged) 
 {
+    juce::AudioDeviceManager::AudioDeviceSetup config;
+    m_deviceManager.getAudioDeviceSetup(config);
+    config.useDefaultInputChannels = false;
+    config.useDefaultOutputChannels = false;
+
     if (comboBoxThatHasChanged == &m_audioTypeCombo)
     {
         // change type
@@ -140,13 +184,8 @@ void AudioDeviceSelectorComponent::comboBoxChanged(juce::ComboBox * comboBoxThat
     }
     else if (comboBoxThatHasChanged == &m_audioDeviceCombo)
     {
-        juce::AudioDeviceManager::AudioDeviceSetup config;
-        m_deviceManager.getAudioDeviceSetup(config);
-
         config.inputDeviceName = m_deviceNameArray[m_audioDeviceCombo.getSelectedId() - 1];
         config.outputDeviceName = m_deviceNameArray[m_audioDeviceCombo.getSelectedId() - 1];
-        config.useDefaultInputChannels = false;
-        config.useDefaultOutputChannels = true;
 
         juce::String error = m_deviceManager.setAudioDeviceSetup(config, true);
 
@@ -158,6 +197,37 @@ void AudioDeviceSelectorComponent::comboBoxChanged(juce::ComboBox * comboBoxThat
         }
 
         m_patchView.m_patchComponent.redraw();
+    }
+    else if (comboBoxThatHasChanged == &m_samplingRatesCombo)
+    {
+        if (m_samplingRatesCombo.getSelectedId() > 0)
+        {
+            config.sampleRate = (double)m_samplingRatesCombo.getSelectedId();
+
+            juce::String error = m_deviceManager.setAudioDeviceSetup(config, true);
+
+            if (error.isNotEmpty())
+            {
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                    TRANS("Error when trying to change audio device sampling rate!"),
+                    error);
+            }
+        }
+    }
+    else if (comboBoxThatHasChanged == &m_bufferSizesCombo)
+    {
+        if (m_bufferSizesCombo.getSelectedId() > 0)
+        {
+            juce::String error = m_deviceManager.setAudioDeviceSetup(config, true);
+
+            if (error.isNotEmpty())
+            {
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                    TRANS("Error when trying to change audio device buffer size!"),
+                    error);
+            }
+        }
+
     }
 
     updateContent();
@@ -205,6 +275,40 @@ void AudioDeviceSelectorComponent::updateContent()
             if (device && device->getName() == deviceNames[i])
                 m_audioDeviceCombo.setSelectedId(1 + i, juce::dontSendNotification);
         }
+    }
+
+    // sampling rate 
+    m_samplingRatesCombo.clear(juce::dontSendNotification);
+    if (device != nullptr)
+    {
+        const juce::Array<double> samplingRates(device->getAvailableSampleRates());
+
+        for (int i = 0 ; i < samplingRates.size(); ++i)
+        {
+            double samplingRate = samplingRates.getUnchecked(i);
+            m_samplingRatesCombo.addItem(juce::String(samplingRate / 1000.0, 1) + "kHz", juce::roundToInt(samplingRate));
+        }
+
+        m_samplingRatesCombo.setSelectedId(juce::roundToInt(device->getCurrentSampleRate()), juce::dontSendNotification);
+    }
+
+    // buffer size
+    m_bufferSizesCombo.clear(juce::dontSendNotification);
+    if (device != nullptr)
+    {
+        const juce::Array<int> bufferSizes(device->getAvailableBufferSizes());
+        double currentSamplingRate = device->getCurrentSampleRate();
+        if (currentSamplingRate == 0)
+            currentSamplingRate = 48000.0;
+
+        for (int i = 0 ; i < bufferSizes.size(); ++i)
+        {
+            int bufferSize = bufferSizes.getUnchecked(i);
+            double duration = bufferSize * 1000.0 / currentSamplingRate;
+            m_bufferSizesCombo.addItem(juce::String(bufferSize) + " samples (" + juce::String(duration, 1) + " ms)", bufferSize);
+        }
+
+        m_bufferSizesCombo.setSelectedId(juce::roundToInt(device->getCurrentBufferSizeSamples()), juce::dontSendNotification);
     }
 }
 
