@@ -1,4 +1,12 @@
 
+1.1 Many changes: 
+- proper device manager with channel assignation, 
+- True Peak values are shown, 
+- better UI, 
+- TP values can be exported
+- mac plug 
+- True Peak color change when exceed value 
+
 1.0.3 Exported volume values now show max volumes 
 1.0.2 Original version (1.0.2 comes from the previous MeasuringLUFS app)
 
@@ -7,8 +15,6 @@ Release procedure
 - zip and rename accordingly 
 
 TODO
-- add an option to export true peak values 
-- channel assignation (today the 6 channels are used in the L R C Lfe Ls Rs order and not explicitly indicated);
-- mac plug 
-- True Peak color change when exceed value 
-
+- device manager: add manager for device specific config window 
+- patch: show first selected lines 
+- patch: view should scroll on selection lines, not on column names 
