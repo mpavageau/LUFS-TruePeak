@@ -29,7 +29,7 @@
 const int lufsYPos = 40;
 
 LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
-    : m_audioConfigString( "AudioConfiguration" )
+    : m_audioConfigString( "AudioConfig" )
     , m_inputPatchString( "InputPatch" )
     , m_hostAppContext( _hostAppContext )
  {
@@ -43,25 +43,29 @@ LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
     juce::StringArray columnNames(names, 6);
     m_patch.setColumnNames(columnNames);
     
-    juce::AudioDeviceManager::AudioDeviceSetup config;
+    m_deviceManager.initialise(6, 2/*0 messes up with ASIO in juce*/, audioConfiguration, false, juce::String::empty);
+
     if (audioConfiguration != nullptr)
     {
         const juce::XmlElement * patch = audioConfiguration->getChildByName(m_inputPatchString);
 
-        if (patch != nullptr)
+        if (patch != nullptr && m_deviceManager.getCurrentAudioDevice() != nullptr)
         {
             m_patch.initFromXml(patch);
 
+            // fake audioDeviceAboutToStart so patch gets initialized
+            m_patch.audioDeviceAboutToStart(m_deviceManager.getCurrentAudioDevice());
+
             juce::String deviceType = audioConfiguration->getStringAttribute("deviceType", "");
             juce::String deviceName = audioConfiguration->getStringAttribute("audioOutputDeviceName", "");
-            if ( deviceName.isEmpty() )
-                deviceName = audioConfiguration->getStringAttribute("audioInputDeviceName", "");
 
+            juce::AudioDeviceManager::AudioDeviceSetup config;
+            m_deviceManager.getAudioDeviceSetup(config);
             config.inputChannels = m_patch.getActiveLines(deviceType, deviceName);
+
+            m_deviceManager.setAudioDeviceSetup(config, true);
         }
     }
-
-    m_deviceManager.initialise(6, 2/*0 messes up with ASIO in juce*/, audioConfiguration, false, juce::String::empty, &config);
 
     delete audioConfiguration;
 
@@ -100,6 +104,20 @@ LufsTruePeakComponent::~LufsTruePeakComponent()
 {
     m_deviceManager.removeAudioCallback( this );
 
+    juce::XmlElement * audioConfiguration = m_deviceManager.createStateXml();
+    if ( audioConfiguration != nullptr )
+    {
+        // add patch
+        juce::XmlElement * inputPatch = m_patch.createStateXml(m_inputPatchString);
+        if (inputPatch != nullptr)
+            audioConfiguration->addChildElement(inputPatch);
+
+        m_processor.m_settings.getUserSettings()->setValue( m_audioConfigString, audioConfiguration );
+        delete audioConfiguration;
+
+        audioConfiguration = nullptr;
+    }
+
     juce::AudioProcessorEditor * lufsEditor = m_processor.getActiveEditor();
 
     if ( lufsEditor )
@@ -111,16 +129,6 @@ LufsTruePeakComponent::~LufsTruePeakComponent()
     }
 
     juce::Thread::sleep( 100 );
-
-    juce::XmlElement * audioConfiguration = m_deviceManager.createStateXml();
-
-    // add patch
-    juce::XmlElement * inputPatch = m_patch.createStateXml(m_inputPatchString);
-    if (inputPatch != nullptr)
-        audioConfiguration->addChildElement(inputPatch);
-
-    m_processor.m_settings.getUserSettings()->setValue( m_audioConfigString, audioConfiguration );
-    delete audioConfiguration;
 }
 
 void LufsTruePeakComponent::paint( juce::Graphics & /*g*/ )
