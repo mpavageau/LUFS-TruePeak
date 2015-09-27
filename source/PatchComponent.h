@@ -23,11 +23,9 @@
 
 #include "Patch.h"
 
-class PatchButton;
-
 class PatchComponent 
     : public juce::Component
-    , juce::Button::Listener
+    , public PatchView::Component::Listener
 {
 public:
 
@@ -41,9 +39,12 @@ public:
 
     virtual ~PatchComponent();
 
+    // public juce::Component
     void paint( juce::Graphics & g ) override;
+    void resized() override;
 
-    void deleteButtons();
+    // PatchView::Component::Listener
+    void patchHasChanged(const juce::BigInteger & activeLines, const juce::BigInteger & activeColumns) override;
 
     void addListener(PatchComponent::Listener * listener) { m_listeners.add(listener); }
 
@@ -51,15 +52,11 @@ public:
 
 private:
 
-    // juce::Button::Listener
-    void buttonClicked(juce::Button * button) override;
-    void buttonStateChanged(juce::Button * button) override;
-
     void drawTextWithAngle(juce::Graphics & g, float angle, int x, int y, int width, int height, juce::Colour fontColor, const juce::String & text);
 
     Patch & m_patch;
 
-    juce::Array<PatchButton*> m_buttonArray;
+    PatchView m_patchView;
 
     juce::Array<Listener*> m_listeners;
 
@@ -67,23 +64,10 @@ private:
     juce::Colour m_fontColor;
 
     int m_arrayX, m_arrayY;
-    bool m_enableMultiSelection;
     bool m_columnNamesAreLong;
 
     static const int m_columnXInc = 45;
     static const int m_lineYInc = 30;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( PatchComponent )
-};
-
-
-class PatchView : public juce::Viewport
-{
-public:
-    PatchView(Patch & patch, juce::Colour backgroundColor, juce::Colour fontColor, bool enableMultiSelection);
-
-    // juce::Component
-    void resized() override;
-
-    PatchComponent m_patchComponent;
 };

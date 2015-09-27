@@ -23,6 +23,8 @@
 
 #include "Patch.h"
 
+#include "PatchButton.h"
+
 Patch::Patch()
     : m_dirty(true)
     , m_floatArray(nullptr)
@@ -277,6 +279,193 @@ bool Patch::getState(int column, int line) const
 void Patch::setState(int column, int line, bool state) 
 {
     m_patch.setBit(getIndex(column, line), state);
+}
+
+
+// PatchView
+
+PatchView::PatchView(Patch & patch, int columnXInc, int lineYInc, bool enableMultiSelection)
+    : m_component(patch, columnXInc, lineYInc, enableMultiSelection)
+{
+    setViewedComponent(&m_component, false);
+}
+
+PatchView::Component::~Component()
+{
+    deleteButtons();
+}
+
+/*void PatchView::resized()
+{
+    m_component.setSize(getWidth() - 50, getHeight());
+}*/
+
+PatchView::Component::Component(Patch & patch, int columnXInc, int lineYInc, bool enableMultiSelection) 
+    : m_patch(patch)
+    , m_columnXInc(columnXInc)
+    , m_lineYInc(lineYInc)
+    , m_enableMultiSelection(enableMultiSelection)
+{
+}
+
+void PatchView::Component::redraw()
+{
+    deleteButtons();
+
+    for ( int line = 0 ; line < m_patch.getLineNames().size() ; ++line )
+    {
+        for ( int column = 0 ; column < m_patch.getColumnNames().size() ; ++column )
+        {
+            PatchButton * button = new PatchButton( juce::Colours::yellow );
+            addAndMakeVisible( button );
+            int m_arrayX = 220;
+            int x = m_arrayX + 10 + m_columnXInc * column;
+            int y = 1 + m_lineYInc * line;
+            button->setBounds( x, y, 20, 20 );
+            button->setRadioGroupId( 1 + column );
+
+            jassert(m_patch.getIndex(column, line) == m_buttonArray.size());
+
+            DBG(juce::String("setToggleState column " + juce::String(column) + juce::String(" line ") + juce::String(line) + " -> " + (m_patch.getState(column, line) ? "ON" : "off")));// );// + (
+            button->setToggleState(m_patch.getState(column, line), juce::dontSendNotification);
+
+            m_buttonArray.add( button );
+
+            button->addListener(this);
+        }
+    }
+
+    int m_arrayX = 220;
+    setSize( m_arrayX + 20 + m_patch.getColumnNames().size() * m_columnXInc, m_patch.getLineNames().size() * m_lineYInc );
+}
+
+void PatchView::Component::buttonClicked(juce::Button * button) 
+{
+    bool foundIt = false;
+    for ( int line = 0 ; line < m_patch.getLineNames().size() ; ++line )
+    {
+        for ( int column = 0 ; column < m_patch.getColumnNames().size() ; ++column )
+        {
+            if (button == m_buttonArray[m_patch.getIndex(column, line)])
+            {
+                if ( m_patch.getState(column, line) )
+                {
+                    // uncheck
+                    m_buttonArray[m_patch.getIndex(column, line)]->setToggleState(false, juce::dontSendNotification);
+                    m_patch.setState(column, line, false);
+
+                    // notify
+                    juce::BigInteger activeLines = m_patch.getActiveLines();
+                    juce::BigInteger activeColumns = m_patch.getActiveColumns();
+
+                    for (int i = 0 ; i < m_listeners.size() ; ++i)
+                    {
+                        m_listeners[i]->patchHasChanged(activeLines, activeColumns);
+                    }
+                }
+
+                foundIt = true;
+
+                break;
+            }
+
+            if (foundIt)
+                break;
+        }
+    }
+}
+
+void PatchView::Component::buttonStateChanged(juce::Button * button) 
+{
+    bool newStateIsOn = false;
+    int buttonColumn = -1;
+    int buttonLine = -1;
+
+    for ( int line = 0 ; line < m_patch.getLineNames().size() ; ++line )
+    {
+        for ( int column = 0 ; column < m_patch.getColumnNames().size() ; ++column )
+        {
+            if (button == m_buttonArray[m_patch.getIndex(column, line)])
+            {
+                newStateIsOn = button->getToggleState();
+                buttonColumn = column;
+                buttonLine = line;
+
+                if (m_patch.getState(column, buttonLine) != newStateIsOn)
+                    m_patch.setState(column, buttonLine, newStateIsOn);
+                else 
+                {
+                    // no change
+                    return;
+                }
+
+                break;
+            }
+        }
+    }
+
+    if ( newStateIsOn && !m_enableMultiSelection )
+    {
+        // uncheck all on same line
+        for ( int column = 0 ; column < m_patch.getColumnNames().size() ; ++column )
+        {
+            if ( column != buttonColumn )
+            {
+                PatchButton * button = m_buttonArray[m_patch.getIndex(column, buttonLine)];
+
+                // uncheck if necessary 
+                if (m_patch.getState(column, buttonLine))
+                {
+                    button->setToggleState(false, juce::sendNotification);
+                
+                    m_patch.setState(column, buttonLine, false);
+                }
+            }
+        }
+    }
+
+    // notify
+    juce::BigInteger activeLines = m_patch.getActiveLines();
+    juce::BigInteger activeColumns = m_patch.getActiveColumns();
+
+    for (int i = 0 ; i < m_listeners.size() ; ++i)
+    {
+        m_listeners[i]->patchHasChanged(activeLines, activeColumns);
+    }
+}
+
+void PatchView::Component::deleteButtons()
+{
+    for ( int i = 0 ; i < m_buttonArray.size() ; ++i )
+    {
+        delete m_buttonArray.getUnchecked( i );
+    }
+
+    m_buttonArray.clear();
+}
+
+void PatchView::Component::paint( juce::Graphics & g )
+{ 
+//    g.fillAll(juce::Colours::red); 
+
+    int m_arrayX = 220;
+    int m_arrayY = 0;
+    int height = 30;
+    juce::Colour m_fontColor( LUFS_COLOR_FONT );
+
+
+    int y = m_arrayY - 3;
+    g.setColour(m_fontColor);
+    for (int i = 0 ; i < m_patch.getLineNames().size() ; ++i)
+    {
+        juce::String text = m_patch.getLineNames()[ i ];
+
+        juce::Font font(height / 2.f);
+        g.setFont(font);
+        g.drawText(text, 0, y, m_arrayX, m_lineYInc, juce::Justification::centredRight, false);
+
+        y += m_lineYInc;
+    }
 }
 
 

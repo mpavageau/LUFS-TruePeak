@@ -78,3 +78,60 @@ private:
     int m_arraySize;
     int m_inputChannelCount;
 };
+
+class PatchButton;
+
+class PatchView : public juce::Viewport
+{
+public:
+
+    class Component 
+        : public juce::Component
+        , public juce::Button::Listener
+    {
+    public:
+
+        class Listener
+        {
+        public:
+            virtual void patchHasChanged(const juce::BigInteger & activeLines, const juce::BigInteger & activeColumns) = 0;
+        };
+
+        Component(Patch & patch, int columnXInc, int lineYInc, bool enableMultiSelection);
+
+        virtual ~Component(); 
+
+        void paint( juce::Graphics & g ) override;
+
+        // juce::Button::Listener
+        void buttonClicked(juce::Button * button) override;
+        void buttonStateChanged(juce::Button * button) override;
+
+        void redraw();
+        void deleteButtons();
+
+        void addListener(Component::Listener * listener) { m_listeners.add(listener); }
+
+    private:
+
+        juce::Array<PatchButton*> m_buttonArray;
+
+        juce::Array<Listener*> m_listeners;
+
+        Patch & m_patch;
+        int m_columnXInc;
+        int m_lineYInc;
+        bool m_enableMultiSelection;
+    };
+
+    PatchView(Patch & patch, int columnXInc, int lineYInc, bool enableMultiSelection);
+
+    void redraw() { m_component.redraw(); }
+
+    void addListener(Component::Listener * listener) { m_component.addListener(listener); }
+
+private:
+
+    Component m_component;
+};
+

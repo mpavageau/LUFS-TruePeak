@@ -27,9 +27,9 @@
 
 AudioDeviceSelectorComponent::AudioDeviceSelectorComponent(AudioDeviceManager & deviceManager, Patch & inputPatch)
     : m_deviceManager(deviceManager)
-    , m_patchView(inputPatch, LUFS_COLOR_BACKGROUND, LUFS_COLOR_FONT, false)
+    , m_patchComponent(inputPatch, LUFS_COLOR_BACKGROUND, LUFS_COLOR_FONT, false)
 {
-    m_patchView.m_patchComponent.redraw();
+    m_patchComponent.redraw();
 
     // colors for combo
     m_audioTypeCombo.setColour(juce::ComboBox::backgroundColourId, LUFS_COLOR_BACKGROUND);
@@ -103,8 +103,8 @@ AudioDeviceSelectorComponent::AudioDeviceSelectorComponent(AudioDeviceManager & 
 
     m_deviceManager.addChangeListener(this);
 
-    addAndMakeVisible(&m_patchView);
-    m_patchView.m_patchComponent.addListener(this);
+    addAndMakeVisible(&m_patchComponent);
+    m_patchComponent.addListener(this);
 
     updateContent();
 }
@@ -165,7 +165,7 @@ void AudioDeviceSelectorComponent::resized()
 
     y += height + offsetY;
 
-    m_patchView.setBounds(leftOffsetX, y, getWidth() - 2 * leftOffsetX, getHeight() - offsetY - y);
+    m_patchComponent.setBounds(leftOffsetX, y, getWidth() - 2 * leftOffsetX, getHeight() - offsetY - y);
 }
 
 void AudioDeviceSelectorComponent::comboBoxChanged(juce::ComboBox * comboBoxThatHasChanged) 
@@ -180,7 +180,7 @@ void AudioDeviceSelectorComponent::comboBoxChanged(juce::ComboBox * comboBoxThat
         // change type
         m_deviceManager.setCurrentAudioDeviceType(m_deviceTypeArray[m_audioTypeCombo.getSelectedId() - 1], true);
 
-        m_patchView.m_patchComponent.redraw();
+        m_patchComponent.redraw();
     }
     else if (comboBoxThatHasChanged == &m_audioDeviceCombo)
     {
@@ -196,7 +196,7 @@ void AudioDeviceSelectorComponent::comboBoxChanged(juce::ComboBox * comboBoxThat
                                               error);
         }
 
-        m_patchView.m_patchComponent.redraw();
+        m_patchComponent.redraw();
     }
     else if (comboBoxThatHasChanged == &m_samplingRatesCombo)
     {
@@ -332,7 +332,7 @@ public:
 
 void AudioDeviceSelectorComponent::audioDeviceAboutToStart(juce::AudioIODevice * /*device*/) 
 {
-    m_patchView.m_patchComponent.redraw();
+    m_patchComponent.redraw();
 }
 
 void AudioDeviceSelectorComponent::patchHasChanged(const PatchComponent * /*component*/, const juce::BigInteger & activeLines, const juce::BigInteger & /*activeColumns*/) 

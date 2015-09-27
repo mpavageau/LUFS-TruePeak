@@ -77,6 +77,6 @@ private:
     juce::ComboBox m_bufferSizesCombo;
     juce::Label m_bufferSizesLabel;
 
-    PatchView m_patchView;
+    PatchComponent m_patchComponent;
 };
 
