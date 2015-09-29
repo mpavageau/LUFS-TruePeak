@@ -26,14 +26,12 @@
 PatchComponent::PatchComponent(Patch & patch, juce::Colour backgroundColor, juce::Colour fontColor, bool enableMultiSelection)
     : juce::Component(juce::String::empty)
     , m_patch(patch)
-    , m_patchView(patch, m_columnXInc, m_lineYInc, enableMultiSelection)
+    , m_patchView(patch, m_columnXInc, m_lineYInc, m_arrayX, enableMultiSelection)
     , m_backgroundColor(backgroundColor)
     , m_fontColor(fontColor)
-    , m_arrayX(0)
     , m_arrayY(0)
     , m_columnNamesAreLong(false)
 {
-    m_arrayX = 220;
     m_arrayY = 800;
 
     addAndMakeVisible(&m_patchView);

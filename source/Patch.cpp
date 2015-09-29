@@ -284,8 +284,8 @@ void Patch::setState(int column, int line, bool state)
 
 // PatchView
 
-PatchView::PatchView(Patch & patch, int columnXInc, int lineYInc, bool enableMultiSelection)
-    : m_component(patch, columnXInc, lineYInc, enableMultiSelection)
+PatchView::PatchView(Patch & patch, int columnXInc, int lineYInc, int arrayX, bool enableMultiSelection)
+    : m_component(patch, columnXInc, lineYInc, arrayX, enableMultiSelection)
 {
     setViewedComponent(&m_component, false);
 }
@@ -300,10 +300,11 @@ PatchView::Component::~Component()
     m_component.setSize(getWidth() - 50, getHeight());
 }*/
 
-PatchView::Component::Component(Patch & patch, int columnXInc, int lineYInc, bool enableMultiSelection) 
+PatchView::Component::Component(Patch & patch, int columnXInc, int lineYInc, int arrayX, bool enableMultiSelection) 
     : m_patch(patch)
     , m_columnXInc(columnXInc)
     , m_lineYInc(lineYInc)
+    , m_arrayX(arrayX) 
     , m_enableMultiSelection(enableMultiSelection)
 {
 }
@@ -318,7 +319,6 @@ void PatchView::Component::redraw()
         {
             PatchButton * button = new PatchButton( juce::Colours::yellow );
             addAndMakeVisible( button );
-            int m_arrayX = 220;
             int x = m_arrayX + 10 + m_columnXInc * column;
             int y = 1 + m_lineYInc * line;
             button->setBounds( x, y, 20, 20 );
@@ -335,7 +335,6 @@ void PatchView::Component::redraw()
         }
     }
 
-    int m_arrayX = 220;
     setSize( m_arrayX + 20 + m_patch.getColumnNames().size() * m_columnXInc, m_patch.getLineNames().size() * m_lineYInc );
 }
 
@@ -446,15 +445,10 @@ void PatchView::Component::deleteButtons()
 
 void PatchView::Component::paint( juce::Graphics & g )
 { 
-//    g.fillAll(juce::Colours::red); 
-
-    int m_arrayX = 220;
-    int m_arrayY = 0;
     int height = 30;
     juce::Colour m_fontColor( LUFS_COLOR_FONT );
 
-
-    int y = m_arrayY - 3;
+    int y = -3;
     g.setColour(m_fontColor);
     for (int i = 0 ; i < m_patch.getLineNames().size() ; ++i)
     {

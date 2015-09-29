@@ -71,7 +71,7 @@ juce::String AudioDeviceManager::setAudioDeviceSetup(const juce::AudioDeviceMana
     m_deviceManager.closeAudioDevice();
 
     juce::String ret = m_deviceManager.initialise(m_numInputChannelsNeeded, m_numOutputChannelsNeeded, nullptr/*xml*/,
-        m_selectDefaultDeviceOnFailure, m_preferredDefaultDeviceName, &newSetup);
+        m_selectDefaultDeviceOnFailure, m_preferredDefaultDeviceName, nullptr/*&newSetup*/);
 
     m_deviceManager.setAudioDeviceSetup(newSetup, true);
 

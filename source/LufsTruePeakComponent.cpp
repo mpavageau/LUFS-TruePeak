@@ -29,7 +29,7 @@
 const int lufsYPos = 40;
 
 LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
-    : m_audioConfigString( "AudioConfig" )
+    : m_audioConfigString( "AudioConfiguration" )
     , m_inputPatchString( "InputPatch" )
     , m_hostAppContext( _hostAppContext )
  {

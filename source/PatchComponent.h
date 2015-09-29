@@ -63,7 +63,8 @@ private:
     juce::Colour m_backgroundColor;
     juce::Colour m_fontColor;
 
-    int m_arrayX, m_arrayY;
+    static const int m_arrayX = 220;
+    int m_arrayY;
     bool m_columnNamesAreLong;
 
     static const int m_columnXInc = 45;

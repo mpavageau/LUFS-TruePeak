@@ -97,7 +97,7 @@ public:
             virtual void patchHasChanged(const juce::BigInteger & activeLines, const juce::BigInteger & activeColumns) = 0;
         };
 
-        Component(Patch & patch, int columnXInc, int lineYInc, bool enableMultiSelection);
+        Component(Patch & patch, int columnXInc, int lineYInc, int arrayX, bool enableMultiSelection);
 
         virtual ~Component(); 
 
@@ -121,10 +121,11 @@ public:
         Patch & m_patch;
         int m_columnXInc;
         int m_lineYInc;
+        int m_arrayX;
         bool m_enableMultiSelection;
     };
 
-    PatchView(Patch & patch, int columnXInc, int lineYInc, bool enableMultiSelection);
+    PatchView(Patch & patch, int columnXInc, int lineYInc, int arrayX, bool enableMultiSelection);
 
     void redraw() { m_component.redraw(); }
 
