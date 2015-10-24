@@ -97,14 +97,53 @@ public:
     void initialise (const juce::String& commandLine ) override
     {
 #if defined (LUFS_TRUEPEAK_WINDOWS)
-        if ( commandLine.length() )
+        juce::StringArray tokens;
+        tokens.addTokens(commandLine, false);
+
+        if ( tokens.size() > 0 && tokens[0].length() )
         {
-            if ( commandLine.toLowerCase().endsWith( ".wav" ) )
+            if ( tokens[0].toLowerCase().endsWith( ".wav" ) )
             {
-                juce::File file( commandLine );
+                juce::File file( tokens[0] );
 
                 if ( file.exists() )
-                    AudioProcessing::TestOversampling( file ); // oversamples by 4
+                {
+                    if ( tokens.size() > 1 && tokens[1].length() && tokens[1].getIntValue() > 0)
+                    {
+//                        int bufferSize = tokens[1].getIntValue();
+
+                        float truePeak = AudioProcessing::ProcessTruePeak( file, 256 );
+                        DBG(juce::String("AudioProcessing::ProcessTruePeak 256 ") + juce::String(truePeak, 3));
+
+                        truePeak = AudioProcessing::ProcessTruePeak( file, 65536 );
+                        DBG(juce::String("AudioProcessing::ProcessTruePeak 65536 ") + juce::String(truePeak, 3));
+
+                        truePeak = AudioProcessing::ProcessTruePeak( file );
+                        DBG(juce::String("AudioProcessing::ProcessTruePeak ENTIRE FILE ") + juce::String(truePeak, 3));
+
+                        truePeak = LufsProcessor::testTruePeak( file, 48000, 64 );
+                        DBG(juce::String("LufsProcessor::testTruePeak 64 ") + juce::String(truePeak, 3));
+
+                        truePeak = LufsProcessor::testTruePeak( file, 48000, 256 );
+                        DBG(juce::String("LufsProcessor::testTruePeak 256 ") + juce::String(truePeak, 3));
+
+                        truePeak = LufsProcessor::testTruePeak( file, 48000, 512 );
+                        DBG(juce::String("LufsProcessor::testTruePeak 512 ") + juce::String(truePeak, 3));
+
+                        truePeak = LufsProcessor::testTruePeak( file, 48000, 1024 );
+                        DBG(juce::String("LufsProcessor::testTruePeak 1024 ") + juce::String(truePeak, 3));
+
+                        truePeak = LufsProcessor::testTruePeak( file, 48000, 2048 );
+                        DBG(juce::String("LufsProcessor::testTruePeak 2048 ") + juce::String(truePeak, 3));
+
+                        truePeak = LufsProcessor::testTruePeak( file, 48000, 65536 );
+                        DBG(juce::String("LufsProcessor::testTruePeak 65536 ") + juce::String(truePeak, 3));
+                    }
+                    else
+                    {
+                        AudioProcessing::TestOversampling( file ); // oversamples by 4
+                    }
+                }
 
                     //AudioProcessing::TestSimpleConvolution( file ); // applies oversampling FIR (coefs are a 24 kHz low pass for a 192 kHz wave)
 

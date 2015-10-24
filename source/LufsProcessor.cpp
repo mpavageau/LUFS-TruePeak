@@ -39,9 +39,49 @@ float getDecibelVolumeFromLinearVolume(float _linearVolume )
     return logf( _linearVolume ) / log10dividedBy20;
 }
 
+float LufsProcessor::testTruePeak(const juce::File & input , const double sampleRate, int bufferSize)
+{
+    juce::AudioFormatManager audioFormatManager;
+    audioFormatManager.registerBasicFormats();
+
+    juce::AudioFormatReader * reader = audioFormatManager.createReaderFor( input );
+
+    float truePeakDecibelValue = -100.f; 
+
+    if ( reader != nullptr )
+    {
+        // read file
+        juce::AudioSampleBuffer buffer( (int)reader->numChannels, (int)reader->lengthInSamples );
+        reader->read( &buffer, 0, (int)reader->lengthInSamples, 0, true, true );
+
+        LufsProcessor processor(reader->numChannels);
+        processor.prepareToPlay(sampleRate, bufferSize);
+
+        int offset = 0;
+        while (offset + bufferSize < (int)reader->lengthInSamples)
+        {
+            juce::AudioSampleBuffer calcBuffer( buffer.getArrayOfWritePointers(), reader->numChannels, offset, bufferSize );
+
+            processor.processBlock(calcBuffer);
+            offset += bufferSize;
+
+            for (int i = 0 ; i < calcBuffer.getNumChannels() ; ++i)
+            {
+                if (truePeakDecibelValue < processor.getTruePeakChannelMax(i))
+                    truePeakDecibelValue = processor.getTruePeakChannelMax(i);
+            }
+        }
+
+        delete reader;
+    }
+
+    return truePeakDecibelValue;
+}
+
 LufsProcessor::LufsProcessor( const int nbChannels )
     : m_block( nbChannels, 0 )
-    , m_memory( nbChannels, 0 )
+    , m_volumeMemory( nbChannels, 0 )
+    , m_truePeakMemory( nbChannels, 0 )
     , m_sampleRate( 0.0 )
     , m_nbChannels( nbChannels )
     , m_maxSize( 0 )
@@ -153,7 +193,8 @@ void LufsProcessor::prepareToPlay(const double sampleRate, int samplesPerBlock)
     }
 
     m_block.setSize( m_nbChannels, 2 * samplesPerBlock );
-    m_memory.setSize( m_nbChannels, 2 * (int)sampleRate );
+    m_volumeMemory.setSize( m_nbChannels, 2 * (int)sampleRate );
+    m_truePeakMemory.setSize( m_nbChannels, 2 * (int)sampleRate );
     m_sampleRate = sampleRate;
     m_sampleSize100ms = (int)( m_sampleRate / 10.0 );
     reset();
@@ -169,7 +210,11 @@ void LufsProcessor::processBlock( juce::AudioSampleBuffer& buffer )
 
     const juce::SpinLock::ScopedLockType scopedLock( m_locker );
 
-    m_block.setSize( m_nbChannels, buffer.getNumSamples(), false, false, true );
+    // copy to internal buffer m_block to apply filters, and then copy at the end of m_volumeMemory
+    bool keepExistingContent = false;
+    bool clearExtraSpace = false;
+    bool avoidReallocating = true;
+    m_block.setSize( m_nbChannels, buffer.getNumSamples(), keepExistingContent, clearExtraSpace, avoidReallocating );
 
     for ( int i = 0 ; i < m_nbChannels ; ++i )
     {
@@ -185,19 +230,35 @@ void LufsProcessor::processBlock( juce::AudioSampleBuffer& buffer )
         // apply high pass
         m_highPassFilterArray.getReference( i ).process( m_block.getWritePointer( i ), m_block.getNumSamples() );
 
-        // copy block at the end of memory
-        m_memory.copyFrom( i, m_memorySize, m_block, i, 0, m_block.getNumSamples() );
+        // copy block at the end of m_volumeMemory 
+        m_volumeMemory.copyFrom( i, m_memorySize, m_block, i, 0, m_block.getNumSamples() );
+    }
+
+    // copy buffer to m_truePeakMemory 
+
+    for ( int i = 0 ; i < m_nbChannels ; ++i )
+    {
+        if ( i >= buffer.getNumChannels() )
+            continue;
+
+        m_truePeakMemory.copyFrom( i, m_memorySize, buffer, i, 0, buffer.getNumSamples() );
     }
 
     m_memorySize += buffer.getNumSamples();
 
     if ( m_memorySize < m_sampleSize100ms )
+    {
+        // we don't have enough data in m_volumeMemory/m_truePeakMemory to process 100 ms
         return;
+    }
+
+
+    // process chunks of 100 ms of data 
 
     int sizeDone = 0 ;
 
     int nbChannels = m_nbChannels > 6 ? 6 : m_nbChannels;
-    while ( sizeDone < m_memorySize )
+    while ( m_memorySize - sizeDone >= m_sampleSize100ms )
     {
         float sum = 0.f;
         
@@ -225,7 +286,7 @@ void LufsProcessor::processBlock( juce::AudioSampleBuffer& buffer )
                 break;
             }
 
-            const float * data = &( m_memory.getReadPointer( i )[ sizeDone ] );
+            const float * data = &( m_volumeMemory.getReadPointer( i )[ sizeDone ] );
 
             for ( int s = 0 ; s < m_sampleSize100ms ; ++s )
             {
@@ -236,14 +297,10 @@ void LufsProcessor::processBlock( juce::AudioSampleBuffer& buffer )
         }
 
         // process peak
-        const float * hundredMillisecondBufferArray[LUFS_TP_MAX_NB_CHANNELS] = { 0 };
-        for ( int i = 0 ; i < buffer.getNumChannels() ; ++i )
-            hundredMillisecondBufferArray[ i ] = &( m_memory.getReadPointer( i )[ sizeDone ] );
+        const juce::AudioSampleBuffer hundredMillisecondBuffer( m_truePeakMemory.getArrayOfWritePointers(), m_truePeakMemory.getNumChannels(), sizeDone, m_sampleSize100ms );
+        AudioProcessing::TruePeak::LinearValue truePeakValue = m_truePeakProcessor.process( hundredMillisecondBuffer );
 
-        const juce::AudioSampleBuffer hundredMillisecondBuffer( (float*const*)hundredMillisecondBufferArray, buffer.getNumChannels(), m_sampleSize100ms );
-        m_truePeakProcessor.process( hundredMillisecondBuffer );
-
-        addSquaredInputAndTruePeak( sum / m_sampleSize100ms, &m_truePeakProcessor, buffer.getNumChannels() );
+        addSquaredInputAndTruePeak( sum / m_sampleSize100ms, truePeakValue, buffer.getNumChannels() );
 
         sizeDone += m_sampleSize100ms;
 
@@ -251,14 +308,27 @@ void LufsProcessor::processBlock( juce::AudioSampleBuffer& buffer )
             break;
     }
 
-    // copy remaining samples to beginning of memory 
+    // copy remaining samples to beginning of m_volumeMemory 
 
     const int remaining = m_memorySize - sizeDone;
     jassert( remaining >= 0 );
 
     for ( int i = 0 ; i < m_nbChannels ; ++i )
     {
-        float * dest = m_memory.getWritePointer( i );
+        float * dest = m_volumeMemory.getWritePointer( i );
+        float * src = &dest[ sizeDone ];
+
+        for ( int s = 0 ; s < remaining ; ++s )
+        {
+            *dest++ = *src++;
+        }
+    }
+
+    // copy remaining samples to beginning of m_truePeakMemory too
+
+    for ( int i = 0 ; i < m_nbChannels ; ++i )
+    {
+        float * dest = m_truePeakMemory.getWritePointer( i );
         float * src = &dest[ sizeDone ];
 
         for ( int s = 0 ; s < remaining ; ++s )
@@ -270,14 +340,13 @@ void LufsProcessor::processBlock( juce::AudioSampleBuffer& buffer )
     m_memorySize = remaining;
 }
 
-void LufsProcessor::addSquaredInputAndTruePeak( const float squaredInput, AudioProcessing::TruePeak * truePeakProcessor, const int numChannels )
+void LufsProcessor::addSquaredInputAndTruePeak( const float squaredInput, const AudioProcessing::TruePeak::LinearValue& value, const int numChannels )
 {
     if ( m_processSize < m_maxSize )
     {
         m_squaredInputArray[ m_processSize ] = squaredInput;
 
-        float linearTruePeak = truePeakProcessor->getTruePeakValue();
-        float decibelTruePeak = getDecibelVolumeFromLinearVolume( linearTruePeak ); 
+        float decibelTruePeak = getDecibelVolumeFromLinearVolume( value.getMax() ); 
         m_truePeakArray[ m_processSize ] = decibelTruePeak;
 
         if ( decibelTruePeak > m_maxTruePeak )
@@ -285,7 +354,7 @@ void LufsProcessor::addSquaredInputAndTruePeak( const float squaredInput, AudioP
 
         for ( int ch = 0 ; ch < numChannels ; ++ch )
         {
-            float channelLinearTruePeak = truePeakProcessor->getTruePeakChannelArray()[ch];
+            float channelLinearTruePeak = value.m_channelArray[ch];
             float channelDecibelTruePeak = getDecibelVolumeFromLinearVolume( channelLinearTruePeak ); 
 
             m_truePeakPerChannelArray[ch][ m_processSize ] = channelDecibelTruePeak;

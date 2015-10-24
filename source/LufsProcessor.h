@@ -154,6 +154,8 @@ class LufsProcessor
 {
 public:
 
+    static float testTruePeak(const juce::File & input , const double sampleRate, int bufferSize);
+
     LufsProcessor( const int nbChannels );
 
     ~LufsProcessor();
@@ -187,7 +189,7 @@ public:
 
 private:
 
-    void addSquaredInputAndTruePeak( const float squaredInput, AudioProcessing::TruePeak * truePeakProcessor, const int numChannels );
+    void addSquaredInputAndTruePeak( const float squaredInput, const AudioProcessing::TruePeak::LinearValue& value, const int numChannels );
     void updatePosition( int position );
 
     static double ms_log10;
@@ -195,7 +197,8 @@ private:
     float getLufsSum( const float volume ) { return float( exp( ( volume + 0.691 ) * ms_log10 / 10.0 ) ); }
 
     juce::AudioSampleBuffer m_block; // data is copied to this buffer then filtered
-    juce::AudioSampleBuffer m_memory; // samples not processed from previous callback 
+    juce::AudioSampleBuffer m_volumeMemory; // samples not processed from previous callback, filtered for volume 
+    juce::AudioSampleBuffer m_truePeakMemory; // samples not processed from previous callback, not filtered, for true peak 
     double m_sampleRate;
     int m_nbChannels;
 
@@ -213,8 +216,8 @@ private:
     float * m_shortTermVolumeArray;
     float * m_integratedVolumeArray;
     float * m_truePeakArray; // max true peak linear volume for 100 ms
-    float * m_truePeakPerChannelArray[LUFS_TP_MAX_NB_CHANNELS]; // true peak linear volume for 100 ms, per channel
-    float m_truePeakMaxPerChannelArray[LUFS_TP_MAX_NB_CHANNELS]; // true peak max linear volume for 100 ms, per channel
+    float * m_truePeakPerChannelArray[LUFS_TP_MAX_NB_CHANNELS]; // true peak decibel volume for 100 ms, per channel
+    float m_truePeakMaxPerChannelArray[LUFS_TP_MAX_NB_CHANNELS]; // true peak max decibel volume for 100 ms, per channel
     float m_maxTruePeak;
     float m_integratedVolume;
     float m_rangeMin;

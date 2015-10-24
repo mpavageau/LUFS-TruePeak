@@ -28,6 +28,12 @@ public:
     // oversamples by 4 a wave file using polyphase4 and saves new file to disk
     static void TestOversampling( const juce::File & input );
 
+    // applies True Peak processing on file
+    static float ProcessTruePeak( const juce::File & input );
+
+    // applies True Peak processing on file using bufferSize buffers 
+    static float ProcessTruePeak( const juce::File & input, const int bufferSize );
+
     // applies simple convolution with polyphase params and saves new file to disk
     static void TestSimpleConvolution( const juce::File & input );
 
@@ -36,25 +42,40 @@ public:
     class TruePeak
     {
     public:
+        struct LinearValue
+        {
+            LinearValue()
+            {
+                for (int i = 0 ; i < LUFS_TP_MAX_NB_CHANNELS ; ++i)
+                    m_channelArray[i] = 0;
+            }
+            float m_channelArray[ LUFS_TP_MAX_NB_CHANNELS ];
+            float getMax() const
+            {
+                float value = 0;
+                for (int i = 0 ; i < LUFS_TP_MAX_NB_CHANNELS ; ++i)
+                {
+                    if (value < m_channelArray[i])
+                        value = m_channelArray[i];
+                }
+                return value;
+            }
+        };
+
         TruePeak();
 
         // process: since this method needs numCoeffs values more than buffer size, 
         // numCoeffs values from previous process call are used at beginning of buffer
-        void process( const juce::AudioSampleBuffer & buffer );
-
-        float getTruePeakValue() const { return m_truePeakValue; }
-        const float * getTruePeakChannelArray() const { return m_truePeakChannelArray; }
+        LinearValue process( const juce::AudioSampleBuffer & buffer );
 
         // resets internal buffers 
         void reset();
 
     private:
 
-        void processPolyphase4AbsMax( const juce::AudioSampleBuffer & buffer );
+        LinearValue processPolyphase4AbsMax( const juce::AudioSampleBuffer & buffer );
 
         juce::AudioSampleBuffer m_inputs; // getPolyphase4AbsMax processes this buffer  
-        float m_truePeakChannelArray[ LUFS_TP_MAX_NB_CHANNELS ];
-        float m_truePeakValue;
     };
 
 private:

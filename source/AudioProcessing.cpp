@@ -77,7 +77,6 @@ void AudioProcessing::TestOversampling( const juce::File & input )
         juce::AudioSampleBuffer output;
         polyphase4( origin, output );
 
-
         juce::String outputName = input.getFullPathName().substring(0, input.getFullPathName().length() - 4);
         juce::File outputFile( outputName + "_polyphase4.wav" );
         juce::FileOutputStream * outputStream = new juce::FileOutputStream( outputFile );
@@ -97,6 +96,76 @@ void AudioProcessing::TestOversampling( const juce::File & input )
 
         delete reader;
     }
+}
+
+float getDecibelVolumeFromLinearVolume(float _linearVolume );
+
+float AudioProcessing::ProcessTruePeak( const juce::File & input )
+{
+    juce::AudioFormatManager audioFormatManager;
+    audioFormatManager.registerBasicFormats();
+
+    juce::AudioFormatReader * reader = audioFormatManager.createReaderFor( input );
+
+    float truePeakValue = 0.f; 
+
+    if ( reader != nullptr )
+    {
+        // read file
+        juce::AudioSampleBuffer buffer( (int)reader->numChannels, (int)reader->lengthInSamples );
+        reader->read( &buffer, 0, (int)reader->lengthInSamples, 0, true, true );
+
+        AudioProcessing::TruePeak truePeak;
+        TruePeak::LinearValue value = truePeak.process(buffer);
+
+        for (int i = 0 ; i < (int)reader->numChannels ; ++i)
+        {
+            if (truePeakValue < value.m_channelArray[i])
+                truePeakValue = value.m_channelArray[i];
+        }
+
+        delete reader;
+    }
+
+    return getDecibelVolumeFromLinearVolume(truePeakValue);
+}
+
+float AudioProcessing::ProcessTruePeak( const juce::File & input, const int bufferSize )
+{
+    juce::AudioFormatManager audioFormatManager;
+    audioFormatManager.registerBasicFormats();
+
+    juce::AudioFormatReader * reader = audioFormatManager.createReaderFor( input );
+
+    float truePeakValue = 0.f; 
+
+    if ( reader != nullptr )
+    {
+        // read file
+        juce::AudioSampleBuffer buffer( (int)reader->numChannels, (int)reader->lengthInSamples );
+        reader->read( &buffer, 0, (int)reader->lengthInSamples, 0, true, true );
+
+        AudioProcessing::TruePeak truePeak;
+
+        int offset = 0;
+        while (offset + bufferSize < (int)reader->lengthInSamples)
+        {
+            juce::AudioSampleBuffer calcBuffer( buffer.getArrayOfWritePointers(), reader->numChannels, offset, bufferSize );
+
+            TruePeak::LinearValue value = truePeak.process(calcBuffer);
+            offset += bufferSize;
+
+            for (int i = 0 ; i < (int)reader->numChannels ; ++i)
+            {
+                if (truePeakValue < value.m_channelArray[i])
+                    truePeakValue = value.m_channelArray[i];
+            }
+        }
+
+        delete reader;
+    }
+
+    return getDecibelVolumeFromLinearVolume(truePeakValue);
 }
 
 void AudioProcessing::convolution( const juce::AudioSampleBuffer & a, const juce::AudioSampleBuffer & b, juce::AudioSampleBuffer & result )
@@ -181,7 +250,7 @@ AudioProcessing::TruePeak::TruePeak()
 
 }
 
-void AudioProcessing::TruePeak::process( const juce::AudioSampleBuffer & buffer )
+AudioProcessing::TruePeak::LinearValue AudioProcessing::TruePeak::process( const juce::AudioSampleBuffer & buffer )
 {
     if (m_inputs.getNumSamples() >= numCoeffs)
     {
@@ -209,7 +278,7 @@ void AudioProcessing::TruePeak::process( const juce::AudioSampleBuffer & buffer 
         m_inputs.copyFrom( ch, numCoeffs, buffer, ch, 0, buffer.getNumSamples() );
     }
 
-    processPolyphase4AbsMax( m_inputs );
+    return processPolyphase4AbsMax( m_inputs );
 }
 
 void AudioProcessing::TruePeak::reset()
@@ -217,11 +286,9 @@ void AudioProcessing::TruePeak::reset()
     m_inputs.setSize(0, 0);
 }
 
-void AudioProcessing::TruePeak::processPolyphase4AbsMax( const juce::AudioSampleBuffer & buffer )
+AudioProcessing::TruePeak::LinearValue AudioProcessing::TruePeak::processPolyphase4AbsMax( const juce::AudioSampleBuffer & buffer )
 {
-    // reset current tru peak
-    m_truePeakValue = 0.f;
-    memset( m_truePeakChannelArray, 0, sizeof( m_truePeakChannelArray ) );
+    LinearValue value;
 
     int sampleSize = buffer.getNumSamples();
 
@@ -235,14 +302,13 @@ void AudioProcessing::TruePeak::processPolyphase4AbsMax( const juce::AudioSample
             {
                 float absSample = fabs( polyphase4ComputeSum( input, i, buffer.getNumSamples(), filterPhaseArray[j], numCoeffs ) );
 
-                if ( absSample > m_truePeakValue )
-                    m_truePeakValue = absSample;
-
-                if ( absSample > m_truePeakChannelArray[ch] )
-                    m_truePeakChannelArray[ch] = absSample;
+                if ( absSample > value.m_channelArray[ch] )
+                    value.m_channelArray[ch] = absSample;
             }
         }
     }
+
+    return value;
 }
 
 /**

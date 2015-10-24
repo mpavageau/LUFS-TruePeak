@@ -402,14 +402,14 @@ void LufsTruePeakPluginEditor::exportToText( bool useCommasForDigitSeparation, b
                 {
                     line << "\t";
                     
-                    float truePeakVolume = DEFAULT_MIN_VOLUME;
+                    float truePeakDecibelVolume = DEFAULT_MIN_VOLUME;
                     for ( int i = 0 ; i < ten ; ++i )
                     {
                         float val = processor->m_lufsProcessor.getTruePeakChannelArray(truePeakCh)[ tens + i ];
-                        if ( truePeakVolume < val  )
-                            truePeakVolume = val;
+                        if ( truePeakDecibelVolume < val  )
+                            truePeakDecibelVolume = val;
                     }
-                    line << juce::String( truePeakVolume, 1 );
+                    line << juce::String( truePeakDecibelVolume, 1 );
                 }
             }
             

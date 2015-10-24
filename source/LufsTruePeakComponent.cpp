@@ -182,10 +182,6 @@ void LufsTruePeakComponent::audioDeviceIOCallback( const float** inputChannelDat
 
 void LufsTruePeakComponent::audioDeviceAboutToStart( juce::AudioIODevice* device )
 {
-juce::String text("LufsTruePeakComponent::audioDeviceAboutToStart getActiveInputChannels ");
-text += device->getActiveInputChannels().toString(2);
-DBG(text);
-
     m_patch.audioDeviceAboutToStart( device );
 
     m_processor.prepareToPlay( device->getCurrentSampleRate(), device->getCurrentBufferSizeSamples() );
