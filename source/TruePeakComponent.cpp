@@ -143,8 +143,6 @@ void TruePeakComponent::paint( juce::Graphics & g )
         int y = getVolumeY( maxDecibel);
         g.fillRect( x, m_vumeterOffsetY + y, m_vumeterWidth, 1);
         
-        //g.fillRect( x, m_vumeterOffsetY + m_vumeterHeight, m_vumeterWidth, 1);
-        
         const juce::String text = maxDecibel > -100.f ? juce::String(maxDecibel, 1) : juce::String((int)maxDecibel);
         g.drawFittedText( text, x, m_vumeterOffsetY + y - 21, m_vumeterWidth, 20, juce::Justification::centred, 1, 0.01f );
         
@@ -173,20 +171,20 @@ void TruePeakComponent::resized()
 
     juce::Graphics g(m_vumeterImage);
 
-    int y = getVolumeY( m_valueComponent.getThresholdVolume());
+    const int changeColorY = getVolumeY( m_valueComponent.getThresholdVolume());
 
     // not active
     float backgroundInterpolator = 0.7f;
     g.setColour(juce::Colours::red.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator));
-    g.fillRect(0.f, 0.f, (float)m_vumeterWidth, (float)y);
-    g.setGradientFill(juce::ColourGradient(juce::Colours::yellow.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)y, juce::Colours::green.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)m_vumeterHeight, false));
-    g.fillRect(0.f, (float)y, (float)m_vumeterWidth, (float)(m_vumeterHeight-y));
+    g.fillRect(0.f, 0.f, (float)m_vumeterWidth, (float)changeColorY);
+    g.setGradientFill(juce::ColourGradient(juce::Colours::yellow.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)changeColorY, juce::Colours::green.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)m_vumeterHeight, false));
+    g.fillRect(0.f, (float)changeColorY, (float)m_vumeterWidth, (float)(m_vumeterHeight-changeColorY));
 
     // active
     g.setColour(juce::Colours::red);
-    g.fillRect((float)m_vumeterWidth, 0.f, (float)m_vumeterWidth, (float)y);
-    g.setGradientFill(juce::ColourGradient(juce::Colours::yellow, 0.f, (float)y, juce::Colours::green, 0.f, (float)m_vumeterHeight, false));
-    g.fillRect((float)m_vumeterWidth, (float)y, (float)m_vumeterWidth, (float)(m_vumeterHeight-y));
+    g.fillRect((float)m_vumeterWidth, 0.f, (float)m_vumeterWidth, (float)changeColorY);
+    g.setGradientFill(juce::ColourGradient(juce::Colours::yellow, 0.f, (float)changeColorY, juce::Colours::green, 0.f, (float)m_vumeterHeight, false));
+    g.fillRect((float)m_vumeterWidth, (float)changeColorY, (float)m_vumeterWidth, (float)(m_vumeterHeight-changeColorY));
 
     // figures
     juce::Font figureFont( 12.f );
@@ -195,6 +193,7 @@ void TruePeakComponent::resized()
     g.setColour(LUFS_COLOR_BACKGROUND);
     g.fillRect(2.f * (float)m_vumeterWidth, 0.f, (float)m_vumeterWidth, (float)m_vumeterHeight);
     g.setColour(LUFS_COLOR_FONT);
+    // white lines for scale
     int lastY = -100;
     for (float decibel = 3.f ; decibel > -80.f ; decibel -= 3.f)
     {
@@ -206,6 +205,55 @@ void TruePeakComponent::resized()
 
             const juce::String text = decibel > 0.f ? juce::String("+") + juce::String((int)decibel) : juce::String((int)decibel);
             g.drawFittedText( text, (int)(2.f * m_vumeterWidth), y - 18, m_vumeterWidth, 20, juce::Justification::centred, 1, 0.01f );
+
+            lastY = y;
+        }
+    }
+
+    // darker lines for scale on vumeter image
+
+    // not active
+    lastY = -100;
+    backgroundInterpolator = 0.75f;
+    g.setColour(juce::Colours::red.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator));
+    bool changedColor = false;
+    for (float decibel = 3.f ; decibel > -80.f ; decibel -= 3.f)
+    {
+        int y = getVolumeY( decibel);
+
+        if (y >= changeColorY && !changedColor)
+        {
+            g.setGradientFill(juce::ColourGradient(juce::Colours::yellow.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)changeColorY, juce::Colours::green.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)m_vumeterHeight, false));
+
+            changedColor = true;
+        }
+
+        if (y - lastY > 20)
+        {
+            g.fillRect( 0.f, (float)y, (float)m_vumeterWidth, (float)1);
+
+            lastY = y;
+        }
+    }
+    // active
+    lastY = -100;
+    backgroundInterpolator = 0.1f;
+    g.setColour(juce::Colours::red.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator));
+    changedColor = false;
+    for (float decibel = 3.f ; decibel > -80.f ; decibel -= 3.f)
+    {
+        int y = getVolumeY( decibel);
+
+        if (y >= changeColorY && !changedColor)
+        {
+            g.setGradientFill(juce::ColourGradient(juce::Colours::yellow.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)changeColorY, juce::Colours::green.interpolatedWith(LUFS_COLOR_BACKGROUND, backgroundInterpolator), 0.f, (float)m_vumeterHeight, false));
+
+            changedColor = true;
+        }
+
+        if (y - lastY > 20)
+        {
+            g.fillRect( (float)m_vumeterWidth, (float)y, (float)m_vumeterWidth, (float)1);
 
             lastY = y;
         }
