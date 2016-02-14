@@ -54,9 +54,9 @@
 
 #define JucePlugin_Name "LUFS-TruePeak"
 #define JucePlugin_Desc "Measures LUFS and TruePeak values"
-#define JucePlugin_Version                1.1.2
-#define JucePlugin_VersionCode            0x10102
-#define JucePlugin_VersionString          "1.1.2"
+#define JucePlugin_Version                1.1.3
+#define JucePlugin_VersionCode            0x10103
+#define JucePlugin_VersionString          "1.1.3"
 
 #define LUFS_TP_MAX_NB_CHANNELS 6
 
