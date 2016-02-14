@@ -65,9 +65,9 @@ LufsTruePeakComponent::LufsTruePeakComponent( bool _hostAppContext )
 
             m_deviceManager.setAudioDeviceSetup(config, true);
         }
-    }
 
-    delete audioConfiguration;
+        delete audioConfiguration;
+    }
 
     m_deviceManager.addAudioCallback( this );
 
