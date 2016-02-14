@@ -113,14 +113,14 @@ end
 		
 if ( _ACTION == "vs2012" ) then
 		location "build/vs2012"
-		flags { "Unicode", "NoRuntimeChecks" }
+		flags { "Unicode", "StaticRuntime", "NoRuntimeChecks" }
 		defines { 
 			"LUFS_TRUEPEAK_WINDOWS",
             "LUFS_TRUEPEAK_PLUGIN",
 		}
 elseif ( _ACTION == "xcode4" ) then
 		location "build/xcode4"
-		flags { "Unicode" }
+		flags { "Unicode", "StaticRuntime" }
 		defines { 
 			"LUFS_TRUEPEAK_MACOS",
             "LUFS_TRUEPEAK_PLUGIN",
